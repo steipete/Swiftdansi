@@ -1,0 +1,148 @@
+import Testing
+@testable import Swiftdansi
+
+struct RenderingTests {
+    @Test
+    func inlineFormatting() {
+        let out = strip("Hello _em_ **strong** `code` ~~gone~~", options: RenderOptions(width: 80))
+        #expect(out.contains("em"))
+        #expect(out.contains("strong"))
+        #expect(out.contains("code"))
+        #expect(out.contains("gone"))
+    }
+
+    @Test
+    func wrappingParagraphs() {
+        let out = strip("one two three four five six seven eight nine ten", options: RenderOptions(wrap: true, width: 10))
+        let first = out.split(separator: "\n").first ?? ""
+        #expect(first.count <= 10)
+    }
+
+    @Test
+    func hyperlinksToggle() {
+        let rendered = render("[x](https://example.com)", options: RenderOptions(wrap: false, hyperlinks: true, color: true))
+        #expect(rendered.contains("\u{001B}]8;;https://example.com"))
+        let plain = render("[x](https://example.com)", options: RenderOptions(wrap: false, hyperlinks: true, color: false))
+        #expect(plain.contains("(https://example.com)"))
+        #expect(!plain.contains("\u{001B}]8;;"))
+    }
+
+    @Test
+    func codeBoxWithLabel() {
+        let md = "```swift\nlet x = 1\nlet y = 2\n```"
+        let out = render(md, options: RenderOptions(wrap: false, color: false))
+        #expect(out.contains("┌"))
+        #expect(out.contains("[swift]"))
+        #expect(out.contains("let x = 1"))
+    }
+
+    @Test
+    func tableRenders() {
+        let md = """
+        | h1 | h2 |
+        | --- | --- |
+        | a | b |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, width: 40))
+        #expect(out.contains("h1"))
+        #expect(out.contains("a"))
+    }
+
+    @Test
+    func longUrlOverflowsWhenWrapped() {
+        let url = "https://example.com/averylongpathwithoutspaces"
+        let out = strip(url, options: RenderOptions(wrap: true, width: 10))
+        #expect(out.contains(url))
+    }
+
+    @Test
+    func taskListRenders() {
+        let out = strip("- [ ] open\n- [x] done", options: RenderOptions())
+        #expect(out.contains("[ ] open"))
+        #expect(out.contains("[x] done"))
+    }
+
+    @Test
+    func blockquotePrefix() {
+        let out = strip("> quoted line", options: RenderOptions())
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("│ "))
+    }
+
+    @Test
+    func codeGutterWrapsSegments() {
+        let md = "```\n0123456789ABCDEFG\n```"
+        let out = render(md, options: RenderOptions(wrap: true, width: 12, color: false, codeBox: false, codeGutter: true))
+        let lines = out.split(separator: "\n")
+        #expect(lines.first?.hasPrefix("1") == true)
+    }
+
+    @Test
+    func tableAlignmentAndTruncate() {
+        let md = """
+        | l | c | r |
+        | :-- | :-: | --: |
+        | Supercalifragilistic | mid | tail |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, width: 18, tableTruncate: true))
+        #expect(out.contains("…"))
+    }
+
+    @Test
+    func diffBlocksDoNotWrap() {
+        let md = """
+        ```
+        --- a/foo
+        +++ b/foo
+        @@ -1 +1 @@
+        - a very very very very long line
+        + another very very very very long line
+        ```
+        """
+        let out = render(md, options: RenderOptions(wrap: true, width: 20, color: false))
+        let longLine = out.split(separator: "\n").first { $0.contains("very very very") }
+        #expect((longLine?.count ?? 0) > 30)
+    }
+
+    @Test
+    func singleLineCodeNoBox() {
+        let md = "```\nsolo\n```"
+        let out = render(md, options: RenderOptions(wrap: false, color: false))
+        #expect(!out.trimmingCharacters(in: .whitespacesAndNewlines).contains("┌"))
+    }
+
+    @Test
+    func hyperlinkSuffixWhenOff() {
+        let out = strip("[link](https://example.com)", options: RenderOptions())
+        #expect(out.contains("link (https://example.com)"))
+    }
+
+    @Test
+    func mailtoNotHyperlinkedInTable() {
+        let md = """
+        | File | Size |
+        | --- | --- |
+        | icon_16x16@2x.png | 32 |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, width: 40, tableTruncate: false))
+        #expect(!out.contains("\u{001B}]8;;"))
+    }
+
+    @Test
+    func asciiBorderTable() {
+        let md = """
+        | h1 | h2 |
+        | --- | --- |
+        | a | b |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, tableBorder: .ascii, tablePadding: 2))
+        #expect(out.contains("+"))
+    }
+
+    @Test
+    func definitionRendering() {
+        let md = "Body line.\n[1]: https://example.com \"Title\"\nNext."
+        let out = render(md, options: RenderOptions(wrap: true, color: false))
+        let lines = out.split(separator: "\n", omittingEmptySubsequences: false)
+        #expect(lines.contains("[1]: https://example.com \"Title\""))
+    }
+}

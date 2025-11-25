@@ -1,0 +1,42 @@
+{
+  "originHash" : "806ade8fccd437aed547f3d11244296a5b71b377e4476b60b225a834e4874101",
+  "pins" : [
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "cdd0ef3755280949551dc26dee5de9ddeda89f54",
+        "version" : "1.6.2"
+      }
+    },
+    {
+      "identity" : "swift-cmark",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-cmark.git",
+      "state" : {
+        "revision" : "5d9bdaa4228b381639fff09403e39a04926e2dbe",
+        "version" : "0.7.1"
+      }
+    },
+    {
+      "identity" : "swift-displaywidth",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ainame/swift-displaywidth",
+      "state" : {
+        "revision" : "e2bfbdf1469366483451708bca36511f4f48ddb1",
+        "version" : "0.0.3"
+      }
+    },
+    {
+      "identity" : "swift-markdown",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-markdown",
+      "state" : {
+        "revision" : "7d9a5ce307528578dfa777d505496bd5f544ad94",
+        "version" : "0.7.3"
+      }
+    }
+  ],
+  "version" : 3
+}
