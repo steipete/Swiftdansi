@@ -88,6 +88,36 @@ struct RenderingTests {
     }
 
     @Test
+    func tableDenseNoneBorder() {
+        let md = """
+        | h1 | h2 |
+        | --- | --- |
+        | a | b |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, tableBorder: TableBorder.none, tablePadding: 0, tableDense: true))
+        #expect(!out.contains("┌"))
+        #expect(out.contains("h1"))
+        #expect(out.contains("|"))
+    }
+
+    @Test
+    func codeGutterMultiDigit() {
+        let body = (1...12).map { "l\($0)" }.joined(separator: "\n")
+        let md = "```\n\(body)\n```"
+        let out = render(md, options: RenderOptions(wrap: false, color: false, codeGutter: true))
+        #expect(out.contains("12 "))
+    }
+
+    @Test
+    func boxedLabelWidth() {
+        let md = "```superlonglanguageid\nfoo\nbar\n```"
+        let out = render(md, options: RenderOptions(wrap: false, color: false))
+        let lines = out.split(separator: "\n", omittingEmptySubsequences: false)
+        #expect(lines.first?.contains("[superlonglanguageid]") == true)
+        #expect(lines.first?.count ?? 0 >= (lines.dropFirst().first?.count ?? 0))
+    }
+
+    @Test
     func diffBlocksDoNotWrap() {
         let md = """
         ```

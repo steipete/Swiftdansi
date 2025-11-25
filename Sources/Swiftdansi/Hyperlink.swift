@@ -2,14 +2,18 @@ import Foundation
 
 /// Basic OSC-8 hyperlink support detection.
 func hyperlinkSupported() -> Bool {
-    // Common modern terminals set one of these; keep conservative.
+    // Heuristic similar to supports-hyperlinks
     let env = ProcessInfo.processInfo.environment
-    if env["WT_SESSION"] != nil || env["TERM_PROGRAM"] == "iTerm.app" || env["TERM_PROGRAM"] == "WezTerm" {
-        return true
+    if env["DOMTERM"] != nil { return true }
+    if env["WT_SESSION"] != nil { return true } // Windows Terminal
+    if let prog = env["TERM_PROGRAM"] {
+        if prog == "iTerm.app" || prog == "WezTerm" || prog == "Hyper" { return true }
     }
-    if let term = env["TERM"], term.contains("xterm-kitty") || term.contains("wezterm") || term.contains("vte") {
-        return true
+    if let term = env["TERM"]?.lowercased() {
+        if term.contains("xterm-kitty") || term.contains("wezterm") { return true }
+        if term.contains("vte") && env["COLORTERM"] == "truecolor" { return true }
     }
+    if env["VTE_VERSION"] != nil { return true }
     return false
 }
 
