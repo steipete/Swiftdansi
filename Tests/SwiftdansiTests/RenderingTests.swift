@@ -1,5 +1,6 @@
 import Testing
 @testable import Swiftdansi
+import SwiftdansiCLI
 
 struct RenderingTests {
     @Test
@@ -166,6 +167,52 @@ struct RenderingTests {
         """
         let out = strip(md, options: RenderOptions(wrap: true, tableBorder: .ascii, tablePadding: 2))
         #expect(out.contains("+"))
+    }
+
+    @Test
+    func tableTruncateDisabledShowsFullCell() {
+        let md = """
+        | col |
+        | --- |
+        | Supercalifragilistic |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, width: 10, tableTruncate: false))
+        #expect(out.contains("Supercalifragilistic"))
+        #expect(!out.contains("…"))
+    }
+
+    @Test
+    func tablePaddingDenseCombination() {
+        let md = """
+        | a | b |
+        | --- | --- |
+        | c | d |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, tableBorder: .unicode, tablePadding: 3, tableDense: true))
+        #expect(out.contains("┌"))
+        #expect(out.contains("a      "))
+    }
+
+    @Test
+    func themeDefaultColors() {
+        let ansi = render("`inline`\n\n```\nblock\n```\n\n# H", options: RenderOptions(wrap: false, color: true))
+        #expect(ansi.contains("\u{001B}[36m")) // cyan inline code
+        #expect(ansi.contains("\u{001B}[32m")) // green block code
+        #expect(ansi.contains("\u{001B}[33m")) // yellow heading
+    }
+
+    @Test
+    func customHighlighterApplied() {
+        let md = "```\ncode\n```"
+        let out = render(md, options: RenderOptions(wrap: false, color: false, highlighter: { code, _ in code.uppercased() }))
+        #expect(out.contains("CODE"))
+    }
+
+    @Test
+    func cliForceLinksOverridesNoColor() throws {
+        let cmd = try SwiftdansiCommand.parse(["--force-links", "--no-color"])
+        #expect(cmd.forceLinks)
+        #expect(cmd.noColor)
     }
 
     @Test

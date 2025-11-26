@@ -65,7 +65,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftdansiTests",
-            dependencies: ["Swiftdansi"],
+            dependencies: ["Swiftdansi", "SwiftdansiCLI"],
             path: "Tests/SwiftdansiTests"
         ),
     ]
