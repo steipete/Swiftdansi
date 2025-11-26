@@ -5,9 +5,14 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge" alt="License MIT"></a>
-  <a href="https://www.swift.org"><img src="https://img.shields.io/badge/swift-6.2-orange?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.2"></a>
-  <a href="#testing--ci"><img src="https://img.shields.io/badge/tests-Swift--Testing-blue?style=for-the-badge&logo=swift&logoColor=white" alt="Tests Swift-Testing"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-1f6feb?style=flat-square" alt="License MIT"></a>
+  <a href="https://www.swift.org"><img src="https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.2"></a>
+  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-15%2B_(Sequoia)-0078d7?style=flat-square&logo=apple&logoColor=white" alt="macOS 15+"></a>
+  <a href="https://www.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="iOS 18+"></a>
+  <a href="https://www.apple.com/tvos/"><img src="https://img.shields.io/badge/tvOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="tvOS 18+"></a>
+  <a href="https://www.apple.com/watchos/"><img src="https://img.shields.io/badge/watchOS-11%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="watchOS 11+"></a>
+  <a href="https://www.apple.com/visionos/"><img src="https://img.shields.io/badge/visionOS-2%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="visionOS 2+"></a>
+  <a href="#testing--ci"><img src="https://img.shields.io/badge/tests-Swift--Testing-0b5fff?style=flat-square&logo=swift&logoColor=white" alt="Tests Swift-Testing"></a>
 </p>
 
 Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+).
