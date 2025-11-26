@@ -216,6 +216,39 @@ struct RenderingTests {
     }
 
     @Test
+    func listOfCodeBlocksCollapses() {
+        let md = "- ```\n  first\n  ```\n- ```\n  second\n  ```"
+        let out = render(md, options: RenderOptions(wrap: false, color: false))
+        let boxCount = out.filter { $0 == "┌" }.count
+        #expect(boxCount == 1)
+        #expect(out.contains("first"))
+        #expect(out.contains("second"))
+    }
+
+    @Test
+    func referenceLikeCodeNotBoxed() {
+        let md = """
+        ```
+        [1]: https://example.com/icon "
+            Icon Composer Notes
+        "
+        ```
+        """
+        let out = render(md, options: RenderOptions(wrap: true, color: false))
+        #expect(!out.contains("┌"))
+        #expect(out.contains("[1]: https://example.com/icon"))
+        #expect(out.contains("Icon Composer Notes"))
+    }
+
+    @Test
+    func hrClampedToForty() {
+        let md = "----"
+        let out = strip(md, options: RenderOptions(wrap: true, width: 10))
+        let line = out.split(separator: "\n").first ?? ""
+        #expect(line.count <= 40)
+    }
+
+    @Test
     func definitionRendering() {
         let md = "Body line.\n[1]: https://example.com \"Title\"\nNext."
         let out = render(md, options: RenderOptions(wrap: true, color: false))
