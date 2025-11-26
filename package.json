@@ -1,0 +1,13 @@
+{
+  "name": "swiftdansi-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "start": "swift run swiftdansi --help",
+    "build": "swift build",
+    "test": "swift test",
+    "lint": "swiftlint lint --config .swiftlint.yml",
+    "format": "swiftformat . --config .swiftformat"
+  }
+}

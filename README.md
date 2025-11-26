@@ -62,6 +62,12 @@ swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-l
 - Hyperlinks: auto-detect when color on; override with `--force-links` or `--no-links`.
 - Handles SIGPIPE for pipelines.
 
+## Development
+- Build: `swift build` (or `pnpm build`)
+- Test: `swift test` (or `pnpm test`)
+- Lint: `pnpm lint` (SwiftLint, config in `.swiftlint.yml`)
+- Format: `pnpm format` (SwiftFormat, config in `.swiftformat`)
+
 ## Testing & CI
 - Tests (Swift-Testing): `swift test`
 - CI: `.github/workflows/ci.yml` runs `swift test` on macOS 15.
