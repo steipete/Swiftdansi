@@ -20,12 +20,9 @@ public func wrapText(_ text: String, width: Int, wrap: Bool) -> [String] {
     var lines: [String] = []
     var current = ""
     var currentWidth = 0
-    guard let pattern = try? NSRegularExpression(pattern: #"(\s+|\S+)"#, options: []) else {
-        return [text]
-    }
-    let matches = pattern.matches(in: text, range: NSRange(location: 0, length: (text as NSString).length))
-    for m in matches {
-        let token = (text as NSString).substring(with: m.range)
+    let regex = /(\s+|\S+)/
+    for match in text.matches(of: regex) {
+        let token = String(match.0)
         let isSpace = token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let w = visibleWidth(token)
         if !isSpace, !current.isEmpty, currentWidth + w > width {

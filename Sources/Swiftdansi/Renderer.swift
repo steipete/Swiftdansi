@@ -89,8 +89,8 @@ private func renderParagraph(_ para: Paragraph, ctx: RenderContext, indentLevel:
         .split(separator: "\n", omittingEmptySubsequences: false)
         .map { line -> String in
             var s = String(line)
-            if let defPattern = try? NSRegularExpression(pattern: #"^\[[^\]]+]:\s+\S"#),
-               defPattern.firstMatch(in: s, range: NSRange(location: 0, length: (s as NSString).length)) != nil {
+            let defRegex = /^\[[^\]]+]:\s+\S/
+            if s.firstMatch(of: defRegex) != nil {
                 s = s.replacingOccurrences(of: "“", with: "\"").replacingOccurrences(of: "”", with: "\"")
             }
             return s
@@ -192,6 +192,7 @@ private func renderListItem(
     if !tight { rendered.append("") }
     return rendered.map { $0 + "\n" }
 }
+
 // swiftlint:enable function_parameter_count
 
 private func renderCodeBlock(_ code: CodeBlock, ctx: RenderContext) -> [String] {
@@ -541,8 +542,8 @@ private func mergeReferenceContinuations(_ blocks: [BlockMarkup]) -> [BlockMarku
         let block = blocks[i]
         if let para = block as? Paragraph {
             let text = paragraphPlainText(para)
-            if let defPattern = try? NSRegularExpression(pattern: #"^\[(\d+|\w+)]:\s+\S.*"\s*$"#),
-               defPattern.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length)) != nil,
+            let defPattern = /^\[(\d+|\w+)]:\s+\S.*"\s*$/
+            if text.firstMatch(of: defPattern) != nil,
                i + 1 < blocks.count,
                let code = blocks[i + 1] as? CodeBlock,
                code.language == nil
@@ -607,8 +608,7 @@ private let unicodeBox = TableBox(
     mSep: "┼",
     bSep: "┴",
     mLeft: "├",
-    mRight: "┤"
-)
+    mRight: "┤")
 private let asciiBox = TableBox(
     topLeft: "+",
     topRight: "+",
@@ -620,8 +620,7 @@ private let asciiBox = TableBox(
     mSep: "+",
     bSep: "+",
     mLeft: "+",
-    mRight: "+"
-)
+    mRight: "+")
 
 extension Collection {
     fileprivate subscript(safe index: Index) -> Element? {
