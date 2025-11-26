@@ -203,7 +203,7 @@ struct RenderingTests {
             md,
             options: RenderOptions(wrap: true, tableBorder: .unicode, tablePadding: 3, tableDense: true))
         #expect(out.contains("┌"))
-        #expect(out.contains("a      "))
+        #expect(out.contains("│   a    │"))
     }
 
     @Test

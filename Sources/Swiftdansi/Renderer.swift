@@ -163,6 +163,7 @@ private func renderListItem(
         }
     }()
 
+    let markerWidth = visibleWidth(taskBox ?? marker) + 1
     let content = renderBlocks(Array(item.blockChildren), ctx: ctx, indentLevel: indentLevel + 1, isTightList: tight)
         .joined().trimmingCharacters(in: .whitespacesAndNewlines).split(
             separator: "\n",
@@ -184,7 +185,7 @@ private func renderListItem(
                 String(repeating: " ", count: ctx.options.listIndent * indentLevel) + markerStyled + " "
             }
         } else {
-            String(repeating: " ", count: ctx.options.listIndent * indentLevel + ctx.options.listIndent)
+            String(repeating: " ", count: ctx.options.listIndent * indentLevel + markerWidth)
         }
         rendered.append(prefix + clean)
     }
@@ -294,7 +295,7 @@ private func renderTable(_ table: Table, ctx: RenderContext) -> [String] {
             }
             let wrapped = wrapText(truncated, width: ctx.options.wrap ? target : Int.max / 2, wrap: ctx.options.wrap)
             return wrapped.map { line in
-                padCell(" \(line) ", width: widths[idx], align: alignments[safe: idx] ?? .left, padding: pad)
+                padCell(line, width: widths[idx], align: alignments[safe: idx] ?? .left, padding: pad)
             }
         }
         let height = colLines.map(\.count).max() ?? 1
@@ -421,17 +422,17 @@ private func truncateCell(_ text: String, width: Int, ellipsis: String) -> Strin
 }
 
 private func padCell(_ text: String, width: Int, align: Table.ColumnAlignment?, padding: Int) -> String {
-    let raw = text
-    let padNeeded = max(0, width - visibleWidth(stripANSI(raw)))
+    let padded = String(repeating: " ", count: padding) + text + String(repeating: " ", count: padding)
+    let padNeeded = max(0, width - visibleWidth(stripANSI(padded)))
     switch align ?? .left {
     case .left:
-        return raw + String(repeating: " ", count: padNeeded)
+        return padded + String(repeating: " ", count: padNeeded)
     case .right:
-        return String(repeating: " ", count: padNeeded) + raw
+        return String(repeating: " ", count: padNeeded) + padded
     case .center:
         let left = padNeeded / 2
         let right = padNeeded - left
-        return String(repeating: " ", count: left) + raw + String(repeating: " ", count: right)
+        return String(repeating: " ", count: left) + padded + String(repeating: " ", count: right)
     }
 }
 
