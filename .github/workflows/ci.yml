@@ -6,11 +6,26 @@ on:
 
 jobs:
   test-macos:
-    runs-on: macos-15
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+        run: |
+          set -euo pipefail
+          for candidate in \
+            /Applications/Xcode_26.1.app \
+            /Applications/Xcode_26.0.app \
+            /Applications/Xcode_16.4.app \
+            /Applications/Xcode_16.3.app \
+            /Applications/Xcode.app; do
+            if [[ -d "$candidate" ]]; then
+              echo "Selecting $candidate"
+              sudo xcode-select -s "$candidate/Contents/Developer"
+              break
+            fi
+          done
+          xcodebuild -version
+          swift --version
       - name: Install tools
         run: brew install swiftlint swiftformat pnpm
       - name: Lint
