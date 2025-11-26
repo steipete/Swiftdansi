@@ -249,6 +249,100 @@ struct RenderingTests {
     }
 
     @Test
+    func inlineHtmlIgnored() {
+        let out = strip("<div>ignored</div>", options: RenderOptions())
+        #expect(out.isEmpty)
+    }
+
+    @Test
+    func headingsAndHrRender() {
+        let md = "# Title\n\n---\n"
+        let out = strip(md, options: RenderOptions(wrap: true, width: 80))
+        #expect(out.contains("Title"))
+        #expect(out.contains("—"))
+    }
+
+    @Test
+    func wrapTextEdgeCases() {
+        #expect(wrapText("", width: 5, wrap: true) == [""])
+        #expect(wrapText("abc", width: 0, wrap: true) == ["abc"])
+    }
+
+    @Test
+    func looseListHasBlankLine() {
+        let out = strip("- item 1\n\n- item 2", options: RenderOptions())
+        let blanks = out.split(separator: "\n", omittingEmptySubsequences: false).filter { $0.isEmpty }.count
+        #expect(blanks > 0)
+    }
+
+    @Test
+    func tableUnderscoreNotLinkified() {
+        let md = """
+        | Filename | Size |
+        | --- | --- |
+        | icon_16x16.png | 16 |
+        | icon_16x16@2x.png | 32 |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, tableTruncate: false))
+        #expect(!out.contains("https://"))
+        #expect(out.contains("icon_16x16"))
+    }
+
+    @Test
+    func tableInlineLinkRespected() {
+        let md = """
+        | File | Link |
+        | --- | --- |
+        | icon_16x16.png | https://example.com/icon.png |
+        """
+        let out = strip(md, options: RenderOptions(wrap: true, width: 60, tableTruncate: false))
+        #expect(out.contains("icon_16x16.png"))
+        #expect(out.contains("https://example.com/icon.png"))
+    }
+
+    @Test
+    func hyperlinkOscEmittedWhenColorOn() {
+        let out = render("[x](https://example.com)", options: RenderOptions(wrap: false, hyperlinks: true, color: true))
+        #expect(out.contains("\u{001B}]8;;https://example.com"))
+    }
+
+    @Test
+    func hyperlinkDisabledWhenColorOff() {
+        let out = render("[x](https://example.com)", options: RenderOptions(wrap: false, hyperlinks: true, color: false))
+        #expect(!out.contains("\u{001B}]8;;"))
+        #expect(out.contains("(https://example.com)"))
+    }
+
+    @Test
+    func stylerAppliesAttributes() {
+        let styler = Styler(enableColor: true)
+        let styled = styler.apply("x", style: StyleIntent(color: "red", bgColor: "blue", bold: true, underline: true, dim: true, strike: true))
+        #expect(styled.contains("\u{001B}[31m"))
+        #expect(styled.contains("\u{001B}[44m"))
+        #expect(styled.contains("\u{001B}[1m"))
+        #expect(styled.contains("\u{001B}[9m"))
+    }
+
+    @Test
+    func stylerReturnsPlainWhenColorOff() {
+        let styler = Styler(enableColor: false)
+        let styled = styler.apply("plain", style: StyleIntent(color: "red"))
+        #expect(styled == "plain")
+    }
+
+    @Test
+    func cliParsesTableFlags() throws {
+        let args = ["--table-border", "ascii", "--table-dense", "--table-padding", "3", "--no-code-wrap", "--no-code-box", "--code-gutter"]
+        let parsed = try SwiftdansiCommand.parse(args)
+        #expect(parsed.tableBorder == .ascii)
+        #expect(parsed.tableDense)
+        #expect(parsed.tablePadding == 3)
+        #expect(parsed.noCodeWrap == true)
+        #expect(parsed.noCodeBox == true)
+        #expect(parsed.codeGutter == true)
+    }
+
+    @Test
     func definitionRendering() {
         let md = "Body line.\n[1]: https://example.com \"Title\"\nNext."
         let out = render(md, options: RenderOptions(wrap: true, color: false))
