@@ -190,7 +190,7 @@ private func renderListItem(
     }
     var rendered: [String] = []
     for (i, line) in lines.enumerated() {
-        let clean = line.replacingOccurrences(of: #"^\s+"#, with: "", options: .regularExpression)
+        let clean = line.replacing(/^[ \t]+/, with: "")
         let prefix = if i == 0 {
             if let box = taskBox {
                 String(repeating: " ", count: ctx.options.listIndent * indentLevel) + ctx.styler.apply(
@@ -472,16 +472,24 @@ private func looksLikeDiff(_ text: String) -> Bool {
 
 private func isReferenceLikeCode(_ code: CodeBlock) -> Bool {
     guard code.language == nil else { return false }
-    let stripped = code.code.replacingOccurrences(of: #"^[ \t>]+"#, with: "", options: .regularExpression)
+    let stripped = code.code.replacingOccurrences(
+        of: #"^[ \t>]+"#,
+        with: "",
+        options: .regularExpression)
     return stripped.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("[") && stripped.contains("]:")
 }
 
 private func renderReferenceLikeCode(_ code: CodeBlock, ctx: RenderContext) -> [String] {
-    let text = code.code.replacingOccurrences(of: #"^[ \t>]+"#, with: "", options: .regularExpression)
+    let text = code.code
+        .replacingOccurrences(
+            of: #"^[ \t>]+"#,
+            with: "",
+            options: .regularExpression)
         .replacingOccurrences(
             of: #"\s+"#,
             with: " ",
-            options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines)
+            options: .regularExpression)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
     let line = text
     var out: [String] = []
     out.append(line + "\n")
@@ -578,8 +586,14 @@ private func mergeReferenceContinuations(_ blocks: [BlockMarkup]) -> [BlockMarku
                code.language == nil
             {
                 let continuation = code.code
-                    .replacingOccurrences(of: #"^[ \t>]+"#, with: " ", options: .regularExpression)
-                    .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                    .replacingOccurrences(
+                        of: #"^[ \t>]+"#,
+                        with: " ",
+                        options: .regularExpression)
+                    .replacingOccurrences(
+                        of: #"\s+"#,
+                        with: " ",
+                        options: .regularExpression)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 var head = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if head.hasSuffix("\"") { head.removeLast() }
@@ -615,7 +629,6 @@ private func flattenCodeList(_ list: ListItemContainer) -> CodeBlock? {
 private func trimTrailingNewlines(_ text: String) -> String {
     text.replacingOccurrences(of: "\n+$", with: "", options: .regularExpression)
 }
-
 
 private struct TableBox {
     let topLeft: String

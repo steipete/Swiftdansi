@@ -215,6 +215,12 @@ struct RenderingTests {
     }
 
     @Test
+    func themeDimAddsDimAttribute() {
+        let ansi = render("`inline`", options: RenderOptions(wrap: false, color: true, theme: .dim))
+        #expect(ansi.contains("\u{001B}[2m"))
+    }
+
+    @Test
     func customHighlighterApplied() {
         let md = "```\ncode\n```"
         let out = render(
@@ -388,7 +394,7 @@ struct RenderingTests {
         let out = render(md, options: RenderOptions(wrap: true, color: false))
         let lines = out.split(separator: "\n", omittingEmptySubsequences: false)
         #expect(lines.first == "Body line.")
-        #expect(lines.dropFirst().first == "") // blank line before footer definition
+        #expect(lines.dropFirst().first?.isEmpty == true) // blank line before footer definition
         #expect(lines.contains("[1]: https://example.com \"Title\""))
         #expect(lines.contains("Next."))
     }
@@ -439,7 +445,8 @@ struct RenderingTests {
         Next.
         """
         let out = render(md, options: RenderOptions(wrap: true, hyperlinks: false, color: false))
-        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected
+            .trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     @Test
@@ -464,7 +471,8 @@ struct RenderingTests {
 
         """
         let out = render(md, options: RenderOptions(wrap: true, hyperlinks: false, color: false))
-        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected
+            .trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     @Test
@@ -486,7 +494,8 @@ struct RenderingTests {
 
         """
         let out = render(md, options: RenderOptions(wrap: true, hyperlinks: false, color: false))
-        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected
+            .trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     @Test
@@ -504,6 +513,16 @@ struct RenderingTests {
         └────┴────┘
         """
         let out = render(md, options: RenderOptions(wrap: true, hyperlinks: false, color: false))
-        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected
+            .trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    @Test
+    func snapshotHyperlinkOnOffMatchesMarkdansi() {
+        let md = "[x](https://example.com)"
+        let osc = render(md, options: RenderOptions(wrap: false, hyperlinks: true, color: true))
+        let plain = render(md, options: RenderOptions(wrap: false, hyperlinks: true, color: false))
+        #expect(osc.contains("\u{001B}]8;;https://example.com"))
+        #expect(plain.trimmingCharacters(in: .whitespacesAndNewlines) == "x (https://example.com)")
     }
 }
