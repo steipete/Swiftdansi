@@ -26,7 +26,8 @@ public func strip(_ markdown: String, options: RenderOptions = RenderOptions()) 
 private func renderResolved(markdown: String, options: ResolvedOptions) -> String {
     let styler = Styler(enableColor: options.color)
     let doc = parseDocument(dedent(markdown))
-    let body = renderBlocks(Array(doc.blockChildren), ctx: RenderContext(options: options, styler: styler), indentLevel: 0, isTightList: false).joined()
+    let normalized = normalizeBlocks(Array(doc.blockChildren))
+    let body = renderBlocks(normalized, ctx: RenderContext(options: options, styler: styler), indentLevel: 0, isTightList: false).joined()
     return options.color ? body : stripANSI(body)
 }
 
@@ -38,9 +39,8 @@ private struct RenderContext {
 // MARK: - Block Rendering
 
 private func renderBlocks(_ blocks: [BlockMarkup], ctx: RenderContext, indentLevel: Int, isTightList: Bool) -> [String] {
-    let normalized = mergeAdjacentCodeBlocks(applyLabelParagraphs(blocks))
     var out: [String] = []
-    for block in normalized {
+    for block in blocks {
         if let para = block as? Paragraph {
             out.append(contentsOf: renderParagraph(para, ctx: ctx, indentLevel: indentLevel))
         } else if let heading = block as? Heading {
@@ -64,6 +64,13 @@ private func renderBlocks(_ blocks: [BlockMarkup], ctx: RenderContext, indentLev
         }
     }
     return out
+}
+
+private func normalizeBlocks(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
+    let mergedRefs = mergeReferenceContinuations(blocks)
+    let labelled = applyLabelParagraphs(mergedRefs)
+    let mergedCodes = mergeAdjacentCodeBlocks(labelled)
+    return mergedCodes
 }
 
 private func renderParagraph(_ para: Paragraph, ctx: RenderContext, indentLevel: Int) -> [String] {
@@ -401,7 +408,14 @@ private func renderReferenceLikeCode(_ code: CodeBlock, ctx: RenderContext) -> [
 }
 
 private func listHasTightSpacing(_ list: ListItemContainer) -> Bool? {
-    // SwiftMarkdown does not expose a direct flag; best effort: assume tight if no blank paragraphs between items.
+    for item in list.listItems {
+        let children = Array(item.blockChildren)
+        if children.count > 1 { return false } // likely loose
+        if let para = children.first as? Paragraph {
+            let text = paragraphPlainText(para).trimmingCharacters(in: .whitespacesAndNewlines)
+            if text.isEmpty { return false }
+        }
+    }
     return true
 }
 
@@ -457,6 +471,38 @@ private func mergeAdjacentCodeBlocks(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
     return out
 }
 
+private func mergeReferenceContinuations(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
+    var out: [BlockMarkup] = []
+    var i = 0
+    while i < blocks.count {
+        let block = blocks[i]
+        if let para = block as? Paragraph {
+            let text = paragraphPlainText(para)
+            let defPattern = try! NSRegularExpression(pattern: #"^\[(\d+|\w+)]:\s+\S.*"\s*$"#)
+            let range = NSRange(location: 0, length: (text as NSString).length)
+            if defPattern.firstMatch(in: text, range: range) != nil,
+               i + 1 < blocks.count,
+               let code = blocks[i + 1] as? CodeBlock,
+               code.language == nil {
+                let continuation = code.code
+                    .replacingOccurrences(of: #"^[ \t>]+"#, with: " ", options: .regularExpression)
+                    .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                var head = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if head.hasSuffix("\"") { head.removeLast() }
+                let merged = "\(head) \(continuation)".trimmingCharacters(in: .whitespaces)
+                let mergedPara = Paragraph([Text(merged)])
+                out.append(mergedPara)
+                i += 2
+                continue
+            }
+        }
+        out.append(block)
+        i += 1
+    }
+    return out
+}
+
 private func flattenCodeList(_ list: ListItemContainer) -> CodeBlock? {
     let items = Array(list.listItems)
     guard !items.isEmpty else { return nil }
@@ -501,4 +547,19 @@ private extension Collection {
         guard indices.contains(index) else { return nil }
         return self[index]
     }
+}
+private func paragraphPlainText(_ para: Paragraph) -> String {
+    var out = ""
+    for inline in para.inlineChildren {
+        if let t = inline as? Text { out += t.string }
+        else if let code = inline as? InlineCode { out += code.code }
+        else if let strong = inline as? Strong {
+            out += paragraphPlainText(Paragraph(strong.inlineChildren))
+        } else if let emph = inline as? Emphasis {
+            out += paragraphPlainText(Paragraph(emph.inlineChildren))
+        } else if let del = inline as? Strikethrough {
+            out += paragraphPlainText(Paragraph(del.inlineChildren))
+        }
+    }
+    return out
 }
