@@ -1,6 +1,7 @@
 import Testing
 @testable import Swiftdansi
 import SwiftdansiCLI
+import Foundation
 
 struct RenderingTests {
     @Test
@@ -340,6 +341,18 @@ struct RenderingTests {
         #expect(parsed.noCodeWrap == true)
         #expect(parsed.noCodeBox == true)
         #expect(parsed.codeGutter == true)
+    }
+
+    @Test
+    func hyperlinkDetectionMatchesEnv() {
+        let envTrue = ["WT_SESSION": "1"]
+        #expect(hyperlinkSupported(env: envTrue, isTTY: true) == true)
+        let envNoColor = ["NO_COLOR": "1"]
+        #expect(hyperlinkSupported(env: envNoColor, isTTY: true) == false)
+        let envForce = ["FORCE_HYPERLINK": "1"]
+        #expect(hyperlinkSupported(env: envForce, isTTY: true) == true)
+        let envNotty = ["WT_SESSION": "1"]
+        #expect(hyperlinkSupported(env: envNotty, isTTY: false) == false)
     }
 
     @Test

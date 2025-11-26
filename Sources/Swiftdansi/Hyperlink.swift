@@ -3,9 +3,14 @@ import Darwin
 
 /// Port of `supports-hyperlinks` logic (best-effort).
 func hyperlinkSupported(stream: FileHandle = .standardOutput) -> Bool {
-    let fd = stream.fileDescriptor
-    if isatty(fd) == 0 { return false }
     let env = ProcessInfo.processInfo.environment
+    let tty = isatty(stream.fileDescriptor) != 0
+    return hyperlinkSupported(env: env, isTTY: tty)
+}
+
+// Testable entry.
+func hyperlinkSupported(env: [String: String], isTTY: Bool) -> Bool {
+    if !isTTY { return false }
     if env["FORCE_HYPERLINK"] == "1" { return true }
     if env["NO_COLOR"] != nil { return false }
     if env["WT_SESSION"] != nil { return true } // Windows Terminal
