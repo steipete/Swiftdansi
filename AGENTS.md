@@ -1,5 +1,9 @@
 # Repository Guidelines
 
+## Start Here
+- Load shared guardrails first: skim `~/Projects/agent-scripts/AGENTS.md` (and `TOOLS.md` if present) before coding.
+- Re-run any repo helpers that surface docs/rules (e.g., `pnpm mcp:docs:list`) when you suspect instructions changed.
+
 ## Project Structure & Modules
 - Sources live in `Sources/Swiftdansi` (renderer, options, styler); CLI entry points under `Sources/swiftdansi`.
 - Tests: `Tests/SwiftdansiTests` (Swift‑Testing). Keep new cases near the behavior they cover.
