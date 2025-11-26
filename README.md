@@ -52,7 +52,7 @@ let custom = createRenderer(options: RenderOptions(
 - `wrap` (default `true`), `width` (TTY cols or 80 when wrapping).
 - `color` (default TTY), `hyperlinks` (auto when color on), `force-links` / `no-links` via CLI.
 - `theme`: `.default | .dim | .bright | .solarized | .monochrome | .contrast` or `customTheme`.
-- Lists: `listIndent` (default 2).
+- Lists: `listIndent` (default 2), `listMarker` (default `-`, set to `"•"` for dotted lists like Markdansi).
 - Quotes: `quotePrefix` (default `│ `).
 - Tables: `tableBorder unicode|ascii|none`, `tablePadding`, `tableDense`, `tableTruncate`, `tableEllipsis`.
 - Code: `codeBox`, `codeGutter`, `codeWrap`.
