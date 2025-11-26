@@ -1,6 +1,6 @@
 # Swiftdansi
 
-Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](../Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+).
+Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+).
 
 ## Features
 - GFM blocks & inline: headings, lists/tasks, blockquotes, code (boxed/labels/gutter), tables (align/pad/dense/truncate/ellipsis), HR, strike, links/autolinks, inline code, emphasis/strong.
@@ -69,4 +69,4 @@ swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-l
 MIT
 
 ## Inspiration
-Built as a Swift port of [Markdansi](../Markdansi); see that project for the original TypeScript implementation and behavior notes.
+Built as a Swift port of [Markdansi](https://github.com/steipete/Markdansi); see that project for the original TypeScript implementation and behavior notes.
