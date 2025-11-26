@@ -44,5 +44,6 @@ swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-l
 ## Development
 - Build: `swift build`
 - Test (Swift Testing): `swift test`
+- CI: GitHub Actions workflow `ci.yml` runs `swift test` on macOS 15.
 
 See `docs/spec.md` for detailed behavior notes and parity expectations with Markdansi.
