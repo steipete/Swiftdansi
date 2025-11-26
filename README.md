@@ -12,7 +12,6 @@
   <a href="https://www.apple.com/tvos/"><img src="https://img.shields.io/badge/tvOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="tvOS 18+"></a>
   <a href="https://www.apple.com/watchos/"><img src="https://img.shields.io/badge/watchOS-11%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="watchOS 11+"></a>
   <a href="https://www.apple.com/visionos/"><img src="https://img.shields.io/badge/visionOS-2%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="visionOS 2+"></a>
-  <a href="#testing--ci"><img src="https://img.shields.io/badge/tests-Swift--Testing-0b5fff?style=flat-square&logo=swift&logoColor=white" alt="Tests Swift-Testing"></a>
 </p>
 
 Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+).
