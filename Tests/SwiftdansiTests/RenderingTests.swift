@@ -1,7 +1,7 @@
+import Foundation
+import SwiftdansiCLI
 import Testing
 @testable import Swiftdansi
-import SwiftdansiCLI
-import Foundation
 
 struct RenderingTests {
     @Test
@@ -15,16 +15,22 @@ struct RenderingTests {
 
     @Test
     func wrappingParagraphs() {
-        let out = strip("one two three four five six seven eight nine ten", options: RenderOptions(wrap: true, width: 10))
+        let out = strip(
+            "one two three four five six seven eight nine ten",
+            options: RenderOptions(wrap: true, width: 10))
         let first = out.split(separator: "\n").first ?? ""
         #expect(first.count <= 10)
     }
 
     @Test
     func hyperlinksToggle() {
-        let rendered = render("[x](https://example.com)", options: RenderOptions(wrap: false, hyperlinks: true, color: true))
+        let rendered = render(
+            "[x](https://example.com)",
+            options: RenderOptions(wrap: false, hyperlinks: true, color: true))
         #expect(rendered.contains("\u{001B}]8;;https://example.com"))
-        let plain = render("[x](https://example.com)", options: RenderOptions(wrap: false, hyperlinks: true, color: false))
+        let plain = render(
+            "[x](https://example.com)",
+            options: RenderOptions(wrap: false, hyperlinks: true, color: false))
         #expect(plain.contains("(https://example.com)"))
         #expect(!plain.contains("\u{001B}]8;;"))
     }
@@ -73,7 +79,9 @@ struct RenderingTests {
     @Test
     func codeGutterWrapsSegments() {
         let md = "```\n0123456789ABCDEFG\n```"
-        let out = render(md, options: RenderOptions(wrap: true, width: 12, color: false, codeBox: false, codeGutter: true))
+        let out = render(
+            md,
+            options: RenderOptions(wrap: true, width: 12, color: false, codeBox: false, codeGutter: true))
         let lines = out.split(separator: "\n")
         #expect(lines.first?.hasPrefix("1") == true)
     }
@@ -96,7 +104,9 @@ struct RenderingTests {
         | --- | --- |
         | a | b |
         """
-        let out = strip(md, options: RenderOptions(wrap: true, tableBorder: TableBorder.none, tablePadding: 0, tableDense: true))
+        let out = strip(
+            md,
+            options: RenderOptions(wrap: true, tableBorder: TableBorder.none, tablePadding: 0, tableDense: true))
         #expect(!out.contains("┌"))
         #expect(out.contains("h1"))
         #expect(out.contains("|"))
@@ -189,7 +199,9 @@ struct RenderingTests {
         | --- | --- |
         | c | d |
         """
-        let out = strip(md, options: RenderOptions(wrap: true, tableBorder: .unicode, tablePadding: 3, tableDense: true))
+        let out = strip(
+            md,
+            options: RenderOptions(wrap: true, tableBorder: .unicode, tablePadding: 3, tableDense: true))
         #expect(out.contains("┌"))
         #expect(out.contains("a      "))
     }
@@ -205,7 +217,9 @@ struct RenderingTests {
     @Test
     func customHighlighterApplied() {
         let md = "```\ncode\n```"
-        let out = render(md, options: RenderOptions(wrap: false, color: false, highlighter: { code, _ in code.uppercased() }))
+        let out = render(
+            md,
+            options: RenderOptions(wrap: false, color: false, highlighter: { code, _ in code.uppercased() }))
         #expect(out.contains("CODE"))
     }
 
@@ -220,7 +234,7 @@ struct RenderingTests {
     func listOfCodeBlocksCollapses() {
         let md = "- ```\n  first\n  ```\n- ```\n  second\n  ```"
         let out = render(md, options: RenderOptions(wrap: false, color: false))
-        let boxCount = out.filter { $0 == "┌" }.count
+        let boxCount = out.count(where: { $0 == "┌" })
         #expect(boxCount == 1)
         #expect(out.contains("first"))
         #expect(out.contains("second"))
@@ -272,7 +286,7 @@ struct RenderingTests {
     @Test
     func looseListHasBlankLine() {
         let out = strip("- item 1\n\n- item 2", options: RenderOptions())
-        let blanks = out.split(separator: "\n", omittingEmptySubsequences: false).filter { $0.isEmpty }.count
+        let blanks = out.split(separator: "\n", omittingEmptySubsequences: false).count(where: { $0.isEmpty })
         #expect(blanks > 0)
     }
 
@@ -309,7 +323,9 @@ struct RenderingTests {
 
     @Test
     func hyperlinkDisabledWhenColorOff() {
-        let out = render("[x](https://example.com)", options: RenderOptions(wrap: false, hyperlinks: true, color: false))
+        let out = render(
+            "[x](https://example.com)",
+            options: RenderOptions(wrap: false, hyperlinks: true, color: false))
         #expect(!out.contains("\u{001B}]8;;"))
         #expect(out.contains("(https://example.com)"))
     }
@@ -317,7 +333,9 @@ struct RenderingTests {
     @Test
     func stylerAppliesAttributes() {
         let styler = Styler(enableColor: true)
-        let styled = styler.apply("x", style: StyleIntent(color: "red", bgColor: "blue", bold: true, underline: true, dim: true, strike: true))
+        let styled = styler.apply(
+            "x",
+            style: StyleIntent(color: "red", bgColor: "blue", bold: true, underline: true, dim: true, strike: true))
         #expect(styled.contains("\u{001B}[31m"))
         #expect(styled.contains("\u{001B}[44m"))
         #expect(styled.contains("\u{001B}[1m"))
@@ -333,7 +351,16 @@ struct RenderingTests {
 
     @Test
     func cliParsesTableFlags() throws {
-        let args = ["--table-border", "ascii", "--table-dense", "--table-padding", "3", "--no-code-wrap", "--no-code-box", "--code-gutter"]
+        let args = [
+            "--table-border",
+            "ascii",
+            "--table-dense",
+            "--table-padding",
+            "3",
+            "--no-code-wrap",
+            "--no-code-box",
+            "--code-gutter",
+        ]
         let parsed = try SwiftdansiCommand.parse(args)
         #expect(parsed.tableBorder == .ascii)
         #expect(parsed.tableDense)

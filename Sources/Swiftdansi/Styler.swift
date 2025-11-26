@@ -44,7 +44,7 @@ public struct Styler {
     }
 
     public func apply(_ text: String, style: StyleIntent?) -> String {
-        guard enableColor, let style else { return text }
+        guard self.enableColor, let style else { return text }
         var codes: [String] = []
         if style.bold { codes.append("\u{001B}[1m") }
         if style.italic { codes.append("\u{001B}[3m") }

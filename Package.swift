@@ -5,18 +5,15 @@ import PackageDescription
 
 let swiftMarkdown: Target.Dependency = .product(
     name: "Markdown",
-    package: "swift-markdown"
-)
+    package: "swift-markdown")
 
 let displayWidth: Target.Dependency = .product(
     name: "DisplayWidth",
-    package: "swift-displaywidth"
-)
+    package: "swift-displaywidth")
 
 let argumentParser: Target.Dependency = .product(
     name: "ArgumentParser",
-    package: "swift-argument-parser"
-)
+    package: "swift-argument-parser")
 
 let package = Package(
     name: "Swiftdansi",
@@ -30,12 +27,10 @@ let package = Package(
     products: [
         .library(
             name: "Swiftdansi",
-            targets: ["Swiftdansi"]
-        ),
+            targets: ["Swiftdansi"]),
         .executable(
             name: "swiftdansi",
-            targets: ["SwiftdansiCLIMain"]
-        ),
+            targets: ["SwiftdansiCLIMain"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-markdown", from: "0.7.0"),
@@ -48,25 +43,20 @@ let package = Package(
             dependencies: [
                 swiftMarkdown,
                 displayWidth,
-            ]
-        ),
+            ]),
         .target(
             name: "SwiftdansiCLI",
             dependencies: [
                 "Swiftdansi",
                 argumentParser,
-            ]
-        ),
+            ]),
         .executableTarget(
             name: "SwiftdansiCLIMain",
             dependencies: [
-                "SwiftdansiCLI"
-            ]
-        ),
+                "SwiftdansiCLI",
+            ]),
         .testTarget(
             name: "SwiftdansiTests",
             dependencies: ["Swiftdansi", "SwiftdansiCLI"],
-            path: "Tests/SwiftdansiTests"
-        ),
-    ]
-)
+            path: "Tests/SwiftdansiTests"),
+    ])

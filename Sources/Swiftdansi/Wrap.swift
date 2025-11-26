@@ -1,5 +1,5 @@
-import Foundation
 import DisplayWidth
+import Foundation
 
 /// Visible width ignoring ANSI escape sequences.
 public func visibleWidth(_ text: String) -> Int {
@@ -20,7 +20,9 @@ public func wrapText(_ text: String, width: Int, wrap: Bool) -> [String] {
     var lines: [String] = []
     var current = ""
     var currentWidth = 0
-    let pattern = try! NSRegularExpression(pattern: #"(\s+|\S+)"#, options: [])
+    guard let pattern = try? NSRegularExpression(pattern: #"(\s+|\S+)"#, options: []) else {
+        return [text]
+    }
     let matches = pattern.matches(in: text, range: NSRange(location: 0, length: (text as NSString).length))
     for m in matches {
         let token = (text as NSString).substring(with: m.range)

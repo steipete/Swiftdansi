@@ -1,10 +1,12 @@
-import Foundation
 import ArgumentParser
-import Swiftdansi
 import Darwin
+import Foundation
+import Swiftdansi
 
 public struct SwiftdansiCommand: ParsableCommand {
-    public static let configuration = CommandConfiguration(commandName: "swiftdansi", abstract: "Markdown to ANSI renderer.")
+    public static let configuration = CommandConfiguration(
+        commandName: "swiftdansi",
+        abstract: "Markdown to ANSI renderer.")
 
     @Option(help: "Input file (default: stdin). Use - for stdin explicitly.")
     public var `in`: String?
@@ -23,7 +25,7 @@ public struct SwiftdansiCommand: ParsableCommand {
 
     @Flag(help: "Disable OSC-8 hyperlinks")
     public var noLinks: Bool = false
-    
+
     @Flag(help: "Force-enable OSC-8 hyperlinks (overrides auto-detect)")
     public var forceLinks: Bool = false
 
@@ -74,11 +76,10 @@ public struct SwiftdansiCommand: ParsableCommand {
     public func run() throws {
         signal(SIGPIPE, SIG_IGN)
 
-        let inputData: Data
-        if let path = `in`, path != "-" {
-            inputData = try Data(contentsOf: URL(fileURLWithPath: path))
+        let inputData: Data = if let path = `in`, path != "-" {
+            try Data(contentsOf: URL(fileURLWithPath: path))
         } else {
-            inputData = FileHandle.standardInput.readDataToEndOfFile()
+            FileHandle.standardInput.readDataToEndOfFile()
         }
 
         guard let markdown = String(data: inputData, encoding: .utf8) else {
@@ -86,22 +87,21 @@ public struct SwiftdansiCommand: ParsableCommand {
         }
 
         var opts = RenderOptions()
-        opts.wrap = !noWrap
-        opts.width = width
-        opts.color = !noColor
-        if forceLinks { opts.hyperlinks = true }
-        else if noLinks { opts.hyperlinks = false }
-        opts.theme = theme
-        opts.listIndent = listIndent
-        opts.quotePrefix = quotePrefix
-        opts.tableBorder = tableBorder
-        opts.tablePadding = tablePadding
-        opts.tableDense = tableDense
-        if let t = tableTruncate { opts.tableTruncate = t } else { opts.tableTruncate = !noTableTruncate }
-        opts.tableEllipsis = tableEllipsis
-        if let cw = codeWrap { opts.codeWrap = cw } else { opts.codeWrap = !noCodeWrap }
-        if let cb = codeBox { opts.codeBox = cb } else { opts.codeBox = !noCodeBox }
-        opts.codeGutter = codeGutter
+        opts.wrap = !self.noWrap
+        opts.width = self.width
+        opts.color = !self.noColor
+        if self.forceLinks { opts.hyperlinks = true } else if self.noLinks { opts.hyperlinks = false }
+        opts.theme = self.theme
+        opts.listIndent = self.listIndent
+        opts.quotePrefix = self.quotePrefix
+        opts.tableBorder = self.tableBorder
+        opts.tablePadding = self.tablePadding
+        opts.tableDense = self.tableDense
+        if let t = tableTruncate { opts.tableTruncate = t } else { opts.tableTruncate = !self.noTableTruncate }
+        opts.tableEllipsis = self.tableEllipsis
+        if let cw = codeWrap { opts.codeWrap = cw } else { opts.codeWrap = !self.noCodeWrap }
+        if let cb = codeBox { opts.codeBox = cb } else { opts.codeBox = !self.noCodeBox }
+        opts.codeGutter = self.codeGutter
 
         let output = Swiftdansi.render(markdown, options: opts)
 

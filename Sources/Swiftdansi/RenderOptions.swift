@@ -38,8 +38,8 @@ public struct RenderOptions: Sendable {
         codeBox: Bool? = nil,
         codeGutter: Bool? = nil,
         codeWrap: Bool? = nil,
-        highlighter: Highlighter? = nil
-    ) {
+        highlighter: Highlighter? = nil)
+    {
         self.wrap = wrap
         self.width = width
         self.hyperlinks = hyperlinks

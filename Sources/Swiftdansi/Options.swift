@@ -57,8 +57,7 @@ func resolve(_ user: RenderOptions) -> ResolvedOptions {
         tableEllipsis: tableEllipsis,
         codeBox: codeBox,
         codeGutter: codeGutter,
-        codeWrap: codeWrap
-    )
+        codeWrap: codeWrap)
 }
 
 private func terminalWidth() -> Int? {

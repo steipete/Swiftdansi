@@ -25,8 +25,8 @@ public struct StyleIntent: Sendable, Hashable {
         italic: Bool = false,
         underline: Bool = false,
         dim: Bool = false,
-        strike: Bool = false
-    ) {
+        strike: Bool = false)
+    {
         self.color = color
         self.bgColor = bgColor
         self.bold = bold
@@ -63,8 +63,8 @@ public struct Theme: Sendable {
         hr: StyleIntent? = nil,
         listMarker: StyleIntent? = nil,
         tableHeader: StyleIntent? = nil,
-        tableCell: StyleIntent? = nil
-    ) {
+        tableCell: StyleIntent? = nil)
+    {
         self.heading = heading
         self.strong = strong
         self.emph = emph
@@ -92,8 +92,7 @@ public enum Themes {
         hr: .init(dim: true),
         listMarker: .init(color: "cyan"),
         tableHeader: .init(color: "yellow", bold: true),
-        tableCell: .init()
-    )
+        tableCell: .init())
 
     public static let dim = Theme(
         heading: .init(color: "white", bold: true, dim: true),
@@ -106,8 +105,7 @@ public enum Themes {
         hr: .init(dim: true),
         listMarker: .init(color: "cyan", dim: true),
         tableHeader: .init(color: "yellow", bold: true, dim: true),
-        tableCell: .init(dim: true)
-    )
+        tableCell: .init(dim: true))
 
     public static let bright = Theme(
         heading: .init(color: "magenta", bold: true),
@@ -120,8 +118,7 @@ public enum Themes {
         hr: .init(dim: true),
         listMarker: .init(color: "yellow"),
         tableHeader: .init(color: "yellow", bold: true),
-        tableCell: .init()
-    )
+        tableCell: .init())
 
     public static let solarized = Theme(
         heading: .init(color: "yellow", bold: true),
@@ -134,8 +131,7 @@ public enum Themes {
         hr: .init(color: "white", dim: true),
         listMarker: .init(color: "cyan"),
         tableHeader: .init(color: "yellow", bold: true),
-        tableCell: .init()
-    )
+        tableCell: .init())
 
     public static let monochrome = Theme(
         heading: .init(bold: true),
@@ -148,8 +144,7 @@ public enum Themes {
         hr: .init(dim: true),
         listMarker: .init(dim: true),
         tableHeader: .init(bold: true),
-        tableCell: .init()
-    )
+        tableCell: .init())
 
     public static let contrast = Theme(
         heading: .init(color: "magenta", bold: true),
@@ -162,8 +157,7 @@ public enum Themes {
         hr: .init(color: "white", dim: true),
         listMarker: .init(color: "yellow", bold: true),
         tableHeader: .init(color: "yellow", bold: true),
-        tableCell: .init(color: "white")
-    )
+        tableCell: .init(color: "white"))
 
     public static func named(_ name: ThemeName) -> Theme {
         switch name {

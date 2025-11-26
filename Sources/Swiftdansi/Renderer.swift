@@ -27,7 +27,11 @@ private func renderResolved(markdown: String, options: ResolvedOptions) -> Strin
     let styler = Styler(enableColor: options.color)
     let doc = parseDocument(dedent(markdown))
     let normalized = normalizeBlocks(Array(doc.blockChildren))
-    let body = renderBlocks(normalized, ctx: RenderContext(options: options, styler: styler), indentLevel: 0, isTightList: false).joined()
+    let body = renderBlocks(
+        normalized,
+        ctx: RenderContext(options: options, styler: styler),
+        indentLevel: 0,
+        isTightList: false).joined()
     return options.color ? body : stripANSI(body)
 }
 
@@ -38,7 +42,12 @@ private struct RenderContext {
 
 // MARK: - Block Rendering
 
-private func renderBlocks(_ blocks: [BlockMarkup], ctx: RenderContext, indentLevel: Int, isTightList: Bool) -> [String] {
+private func renderBlocks(
+    _ blocks: [BlockMarkup],
+    ctx: RenderContext,
+    indentLevel: Int,
+    isTightList: Bool) -> [String]
+{
     var out: [String] = []
     for block in blocks {
         if let para = block as? Paragraph {
@@ -80,8 +89,8 @@ private func renderParagraph(_ para: Paragraph, ctx: RenderContext, indentLevel:
         .split(separator: "\n", omittingEmptySubsequences: false)
         .map { line -> String in
             var s = String(line)
-            let defPattern = try! NSRegularExpression(pattern: #"^\[[^\]]+]:\s+\S"#)
-            if defPattern.firstMatch(in: s, range: NSRange(location: 0, length: (s as NSString).length)) != nil {
+            if let defPattern = try? NSRegularExpression(pattern: #"^\[[^\]]+]:\s+\S"#),
+               defPattern.firstMatch(in: s, range: NSRange(location: 0, length: (s as NSString).length)) != nil {
                 s = s.replacingOccurrences(of: "“", with: "\"").replacingOccurrences(of: "”", with: "\"")
             }
             return s
@@ -105,7 +114,8 @@ private func renderHr(ctx: RenderContext) -> [String] {
 }
 
 private func renderBlockQuote(_ quote: BlockQuote, ctx: RenderContext, indentLevel: Int) -> [String] {
-    let inner = renderBlocks(Array(quote.blockChildren), ctx: ctx, indentLevel: indentLevel, isTightList: false).joined().trimmingCharacters(in: .whitespacesAndNewlines)
+    let inner = renderBlocks(Array(quote.blockChildren), ctx: ctx, indentLevel: indentLevel, isTightList: false)
+        .joined().trimmingCharacters(in: .whitespacesAndNewlines)
     let prefixRaw = ctx.options.quotePrefix
     let prefix = ctx.styler.apply(prefixRaw, style: ctx.options.theme.quote)
     let wrapped = wrapWithPrefix(inner, width: ctx.options.width ?? 80, wrap: ctx.options.wrap, prefix: prefix)
@@ -121,12 +131,28 @@ private func renderList(_ list: ListItemContainer, ordered: Bool, ctx: RenderCon
     }
     var out: [String] = []
     for (idx, item) in items.enumerated() {
-        out.append(contentsOf: renderListItem(item, ctx: ctx, indentLevel: indentLevel, tight: tight, ordered: ordered, start: Int(start), idx: idx))
+        out.append(contentsOf: renderListItem(
+            item,
+            ctx: ctx,
+            indentLevel: indentLevel,
+            tight: tight,
+            ordered: ordered,
+            start: Int(start),
+            idx: idx))
     }
     return out
 }
 
-private func renderListItem(_ item: ListItem, ctx: RenderContext, indentLevel: Int, tight: Bool, ordered: Bool, start: Int, idx: Int) -> [String] {
+// swiftlint:disable function_parameter_count
+private func renderListItem(
+    _ item: ListItem,
+    ctx: RenderContext,
+    indentLevel: Int,
+    tight: Bool,
+    ordered: Bool,
+    start: Int,
+    idx: Int) -> [String]
+{
     let marker = ordered ? "\(start + idx)." : "-"
     let markerStyled = ctx.styler.apply(marker, style: ctx.options.theme.listMarker)
     let taskBox: String? = {
@@ -137,7 +163,10 @@ private func renderListItem(_ item: ListItem, ctx: RenderContext, indentLevel: I
         }
     }()
 
-    let content = renderBlocks(Array(item.blockChildren), ctx: ctx, indentLevel: indentLevel + 1, isTightList: tight).joined().trimmingCharacters(in: .whitespacesAndNewlines).split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+    let content = renderBlocks(Array(item.blockChildren), ctx: ctx, indentLevel: indentLevel + 1, isTightList: tight)
+        .joined().trimmingCharacters(in: .whitespacesAndNewlines).split(
+            separator: "\n",
+            omittingEmptySubsequences: false).map(String.init)
     // drop leading blank lines
     var lines = content
     while let first = lines.first, first.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -146,26 +175,30 @@ private func renderListItem(_ item: ListItem, ctx: RenderContext, indentLevel: I
     var rendered: [String] = []
     for (i, line) in lines.enumerated() {
         let clean = line.replacingOccurrences(of: #"^\s+"#, with: "", options: .regularExpression)
-        let prefix: String
-        if i == 0 {
+        let prefix = if i == 0 {
             if let box = taskBox {
-                prefix = String(repeating: " ", count: ctx.options.listIndent * indentLevel) + ctx.styler.apply(box, style: ctx.options.theme.listMarker) + " "
+                String(repeating: " ", count: ctx.options.listIndent * indentLevel) + ctx.styler.apply(
+                    box,
+                    style: ctx.options.theme.listMarker) + " "
             } else {
-                prefix = String(repeating: " ", count: ctx.options.listIndent * indentLevel) + markerStyled + " "
+                String(repeating: " ", count: ctx.options.listIndent * indentLevel) + markerStyled + " "
             }
         } else {
-            prefix = String(repeating: " ", count: ctx.options.listIndent * indentLevel + ctx.options.listIndent)
+            String(repeating: " ", count: ctx.options.listIndent * indentLevel + ctx.options.listIndent)
         }
         rendered.append(prefix + clean)
     }
     if !tight { rendered.append("") }
     return rendered.map { $0 + "\n" }
 }
+// swiftlint:enable function_parameter_count
 
 private func renderCodeBlock(_ code: CodeBlock, ctx: RenderContext) -> [String] {
     let lang = code.language
     var lines = code.code.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-    while lines.last == "" { lines.removeLast() }
+    while lines.last?.isEmpty == true {
+        lines.removeLast()
+    }
     if lines.isEmpty { lines = [""] }
     let isDiff = lang?.lowercased() == "diff" || looksLikeDiff(code.code)
     let gutterWidth = ctx.options.codeGutter ? String(lines.count).count + 2 : 0
@@ -179,9 +212,14 @@ private func renderCodeBlock(_ code: CodeBlock, ctx: RenderContext) -> [String] 
     let bodyLines: [String] = lines.enumerated().flatMap { idx, line in
         let wrapped = wrapCodeLine(line, width: wrapLimit)
         return wrapped.enumerated().map { segIdx, segment in
-            let highlighted = ctx.options.highlighter?(segment, lang) ?? ctx.styler.apply(segment, style: ctx.options.theme.blockCode ?? ctx.options.theme.code ?? ctx.options.theme.inlineCode)
+            let highlighted = ctx.options.highlighter?(segment, lang) ?? ctx.styler.apply(
+                segment,
+                style: ctx.options.theme.blockCode ?? ctx.options.theme.code ?? ctx.options.theme.inlineCode)
             guard ctx.options.codeGutter else { return highlighted }
-            let num = segIdx == 0 ? String(idx + 1).padding(toLength: max(1, gutterWidth - 2), withPad: " ", startingAt: 0) : String(repeating: " ", count: max(1, gutterWidth - 2))
+            let num = segIdx == 0 ? String(idx + 1).padding(
+                toLength: max(1, gutterWidth - 2),
+                withPad: " ",
+                startingAt: 0) : String(repeating: " ", count: max(1, gutterWidth - 2))
             let numStyled = ctx.styler.apply(num, style: StyleIntent(dim: true))
             return "\(numStyled) \(highlighted)"
         }
@@ -193,14 +231,16 @@ private func renderCodeBlock(_ code: CodeBlock, ctx: RenderContext) -> [String] 
     let labelRaw = lang.map { "[\($0)]" } ?? ""
     let labelStyled = labelRaw.isEmpty ? "" : ctx.styler.apply(labelRaw, style: StyleIntent(dim: true))
     let headerPad = max(0, innerWidth - labelRaw.count + 1)
-    let top: String = {
-        if labelRaw.isEmpty {
-            return ctx.styler.apply("┌ " + String(repeating: "─", count: innerWidth) + " ┐", style: StyleIntent(dim: true))
-        } else {
-            return ctx.styler.apply("┌ \(labelStyled)" + String(repeating: "─", count: headerPad) + "┐", style: StyleIntent(dim: true))
-        }
-    }()
-    let bottom = ctx.styler.apply("└" + String(repeating: "─", count: innerWidth + 2) + "┘", style: StyleIntent(dim: true))
+    let top: String = if labelRaw.isEmpty {
+        ctx.styler.apply("┌ " + String(repeating: "─", count: innerWidth) + " ┐", style: StyleIntent(dim: true))
+    } else {
+        ctx.styler.apply(
+            "┌ \(labelStyled)" + String(repeating: "─", count: headerPad) + "┐",
+            style: StyleIntent(dim: true))
+    }
+    let bottom = ctx.styler.apply(
+        "└" + String(repeating: "─", count: innerWidth + 2) + "┘",
+        style: StyleIntent(dim: true))
     let middle = bodyLines.map { line in
         let pad = max(0, innerWidth - visibleWidth(line))
         let left = ctx.styler.apply("│ ", style: StyleIntent(dim: true))
@@ -218,7 +258,7 @@ private func renderTable(_ table: Table, ctx: RenderContext) -> [String] {
     let cells: [[String]] = ([headCells] + rowBlocks.map { Array($0.cells) }).map { row in
         row.map { cell in renderInline(children: Array(cell.inlineChildren), ctx: ctx) }
     }
-    let colCount = cells.map { $0.count }.max() ?? 0
+    let colCount = cells.map(\.count).max() ?? 0
     var widths = Array(repeating: 1, count: colCount)
     let pad = ctx.options.tablePadding
     let minContent = max(1, ctx.options.tableEllipsis.count + 1)
@@ -240,28 +280,35 @@ private func renderTable(_ table: Table, ctx: RenderContext) -> [String] {
             } else { break }
         }
     }
-    for i in widths.indices where widths[i] < minColWidth { widths[i] = minColWidth }
+    for i in widths.indices where widths[i] < minColWidth {
+        widths[i] = minColWidth
+    }
 
     func renderRow(_ row: [String], header: Bool) -> [[String]] {
         let colLines: [[String]] = row.enumerated().map { idx, cell in
             let target = max(minContent, widths[idx] - pad * 2)
-            let truncated: String
-            if ctx.options.tableTruncate, visibleWidth(cell) > target {
-                truncated = truncateCell(cell, width: target, ellipsis: ctx.options.tableEllipsis)
+            let truncated: String = if ctx.options.tableTruncate, visibleWidth(cell) > target {
+                truncateCell(cell, width: target, ellipsis: ctx.options.tableEllipsis)
             } else {
-                truncated = cell
+                cell
             }
             let wrapped = wrapText(truncated, width: ctx.options.wrap ? target : Int.max / 2, wrap: ctx.options.wrap)
             return wrapped.map { line in
                 padCell(" \(line) ", width: widths[idx], align: alignments[safe: idx] ?? .left, padding: pad)
             }
         }
-        let height = colLines.map { $0.count }.max() ?? 1
+        let height = colLines.map(\.count).max() ?? 1
         var lines: [[String]] = []
         for i in 0..<height {
             let parts = colLines.enumerated().map { idx, column -> String in
-                let content = column[safe: i] ?? padCell("", width: widths[idx], align: alignments[safe: idx] ?? .left, padding: pad)
-                return header ? ctx.styler.apply(content, style: ctx.options.theme.tableHeader) : ctx.styler.apply(content, style: ctx.options.theme.tableCell)
+                let content = column[safe: i] ?? padCell(
+                    "",
+                    width: widths[idx],
+                    align: alignments[safe: idx] ?? .left,
+                    padding: pad)
+                return header ? ctx.styler.apply(content, style: ctx.options.theme.tableHeader) : ctx.styler.apply(
+                    content,
+                    style: ctx.options.theme.tableCell)
             }
             lines.append(parts)
         }
@@ -301,11 +348,17 @@ private func renderInline(children: [Markup], ctx: RenderContext) -> String {
         if let text = child as? Text {
             out += text.string
         } else if let emphasis = child as? Emphasis {
-            out += ctx.styler.apply(renderInline(children: Array(emphasis.inlineChildren), ctx: ctx), style: ctx.options.theme.emph)
+            out += ctx.styler.apply(
+                renderInline(children: Array(emphasis.inlineChildren), ctx: ctx),
+                style: ctx.options.theme.emph)
         } else if let strong = child as? Strong {
-            out += ctx.styler.apply(renderInline(children: Array(strong.inlineChildren), ctx: ctx), style: ctx.options.theme.strong)
+            out += ctx.styler.apply(
+                renderInline(children: Array(strong.inlineChildren), ctx: ctx),
+                style: ctx.options.theme.strong)
         } else if let del = child as? Strikethrough {
-            out += ctx.styler.apply(renderInline(children: Array(del.inlineChildren), ctx: ctx), style: StyleIntent(strike: true))
+            out += ctx.styler.apply(
+                renderInline(children: Array(del.inlineChildren), ctx: ctx),
+                style: StyleIntent(strike: true))
         } else if let code = child as? InlineCode {
             let theme = ctx.options.theme.inlineCode ?? ctx.options.theme.blockCode ?? ctx.options.theme.code
             out += ctx.styler.apply(code.code, style: theme)
@@ -384,12 +437,16 @@ private func padCell(_ text: String, width: Int, align: Table.ColumnAlignment?, 
 
 private func looksLikeDiff(_ text: String) -> Bool {
     let lines = text.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
-    if lines.contains(where: { $0.hasPrefix("diff --git") || $0.hasPrefix("--- a/") || $0.hasPrefix("+++ b/") || $0.hasPrefix("@@ ") }) {
+    if lines
+        .contains(where: {
+            $0.hasPrefix("diff --git") || $0.hasPrefix("--- a/") || $0.hasPrefix("+++ b/") || $0.hasPrefix("@@ ")
+        })
+    {
         return true
     }
     let nonEmpty = lines.filter { !$0.isEmpty }
     guard nonEmpty.count >= 3 else { return false }
-    let markers = nonEmpty.filter { ["+", "-", "@"].contains($0.prefix(1)) }.count
+    let markers = nonEmpty.count(where: { ["+", "-", "@"].contains($0.prefix(1)) })
     return markers >= max(3, Int(Double(nonEmpty.count) * 0.6))
 }
 
@@ -400,7 +457,11 @@ private func isReferenceLikeCode(_ code: CodeBlock) -> Bool {
 }
 
 private func renderReferenceLikeCode(_ code: CodeBlock, ctx: RenderContext) -> [String] {
-    let text = code.code.replacingOccurrences(of: #"^[ \t>]+"#, with: "", options: .regularExpression).replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines)
+    let text = code.code.replacingOccurrences(of: #"^[ \t>]+"#, with: "", options: .regularExpression)
+        .replacingOccurrences(
+            of: #"\s+"#,
+            with: " ",
+            options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines)
     let line = text
     var out: [String] = []
     out.append(line + "\n")
@@ -432,7 +493,8 @@ private func applyLabelParagraphs(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
                 if let langSub = match?.output.1,
                    i + 1 < blocks.count,
                    var code = blocks[i + 1] as? CodeBlock,
-                   code.language == nil {
+                   code.language == nil
+                {
                     code.language = String(langSub)
                     out.append(code)
                     i += 2
@@ -478,12 +540,12 @@ private func mergeReferenceContinuations(_ blocks: [BlockMarkup]) -> [BlockMarku
         let block = blocks[i]
         if let para = block as? Paragraph {
             let text = paragraphPlainText(para)
-            let defPattern = try! NSRegularExpression(pattern: #"^\[(\d+|\w+)]:\s+\S.*"\s*$"#)
-            let range = NSRange(location: 0, length: (text as NSString).length)
-            if defPattern.firstMatch(in: text, range: range) != nil,
+            if let defPattern = try? NSRegularExpression(pattern: #"^\[(\d+|\w+)]:\s+\S.*"\s*$"#),
+               defPattern.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length)) != nil,
                i + 1 < blocks.count,
                let code = blocks[i + 1] as? CodeBlock,
-               code.language == nil {
+               code.language == nil
+            {
                 let continuation = code.code
                     .replacingOccurrences(of: #"^[ \t>]+"#, with: " ", options: .regularExpression)
                     .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
@@ -514,7 +576,7 @@ private func flattenCodeList(_ list: ListItemContainer) -> CodeBlock? {
     guard codes.count == items.count else { return nil }
     let sameLang = Set(codes.map { $0.language ?? "" }).count == 1
     let lang = sameLang ? codes.first?.language : nil
-    let merged = codes.map { $0.code }.joined(separator: "\n")
+    let merged = codes.map(\.code).joined(separator: "\n")
     let new = CodeBlock(language: lang, merged)
     return new
 }
@@ -534,31 +596,55 @@ private struct TableBox {
 }
 
 private let unicodeBox = TableBox(
-    topLeft: "┌", topRight: "┐", bottomLeft: "└", bottomRight: "┘",
-    hSep: "─", vSep: "│", tSep: "┬", mSep: "┼", bSep: "┴", mLeft: "├", mRight: "┤"
+    topLeft: "┌",
+    topRight: "┐",
+    bottomLeft: "└",
+    bottomRight: "┘",
+    hSep: "─",
+    vSep: "│",
+    tSep: "┬",
+    mSep: "┼",
+    bSep: "┴",
+    mLeft: "├",
+    mRight: "┤"
 )
 private let asciiBox = TableBox(
-    topLeft: "+", topRight: "+", bottomLeft: "+", bottomRight: "+",
-    hSep: "-", vSep: "|", tSep: "+", mSep: "+", bSep: "+", mLeft: "+", mRight: "+"
+    topLeft: "+",
+    topRight: "+",
+    bottomLeft: "+",
+    bottomRight: "+",
+    hSep: "-",
+    vSep: "|",
+    tSep: "+",
+    mSep: "+",
+    bSep: "+",
+    mLeft: "+",
+    mRight: "+"
 )
 
-private extension Collection {
-    subscript(safe index: Index) -> Element? {
+extension Collection {
+    fileprivate subscript(safe index: Index) -> Element? {
         guard indices.contains(index) else { return nil }
         return self[index]
     }
 }
+
 private func paragraphPlainText(_ para: Paragraph) -> String {
     var out = ""
     for inline in para.inlineChildren {
-        if let t = inline as? Text { out += t.string }
-        else if let code = inline as? InlineCode { out += code.code }
-        else if let strong = inline as? Strong {
+        switch inline {
+        case let t as Text:
+            out += t.string
+        case let code as InlineCode:
+            out += code.code
+        case let strong as Strong:
             out += paragraphPlainText(Paragraph(strong.inlineChildren))
-        } else if let emph = inline as? Emphasis {
+        case let emph as Emphasis:
             out += paragraphPlainText(Paragraph(emph.inlineChildren))
-        } else if let del = inline as? Strikethrough {
+        case let del as Strikethrough:
             out += paragraphPlainText(Paragraph(del.inlineChildren))
+        default:
+            break
         }
     }
     return out

@@ -1,5 +1,5 @@
-import Foundation
 import Darwin
+import Foundation
 
 /// Port of `supports-hyperlinks` logic (best-effort).
 func hyperlinkSupported(stream: FileHandle = .standardOutput) -> Bool {
@@ -21,8 +21,8 @@ func hyperlinkSupported(env: [String: String], isTTY: Bool) -> Bool {
     if let term = env["TERM"]?.lowercased() {
         if term.contains("xterm-kitty") { return true }
         if term.contains("wezterm") { return true }
-        if term.contains("vte") && env["COLORTERM"] == "truecolor" { return true }
-        if term.contains("screen") && env["TERM_PROGRAM"] == "tmux" { return true }
+        if term.contains("vte"), env["COLORTERM"] == "truecolor" { return true }
+        if term.contains("screen"), env["TERM_PROGRAM"] == "tmux" { return true }
     }
     return false
 }
