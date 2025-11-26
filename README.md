@@ -4,7 +4,11 @@
   <img src="./swiftdansi.png" alt="Swiftdansi README header" width="1100">
 </p>
 
-![license MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![swift 6.2](https://img.shields.io/badge/swift-6.2-orange) ![tests Swift-Testing](https://img.shields.io/badge/tests-Swift--Testing-blue)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge" alt="License MIT"></a>
+  <a href="https://www.swift.org"><img src="https://img.shields.io/badge/swift-6.2-orange?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.2"></a>
+  <a href="#testing--ci"><img src="https://img.shields.io/badge/tests-Swift--Testing-blue?style=for-the-badge&logo=swift&logoColor=white" alt="Tests Swift-Testing"></a>
+</p>
 
 Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+).
 
