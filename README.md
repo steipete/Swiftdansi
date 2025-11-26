@@ -1,49 +1,72 @@
 # Swiftdansi
 
-Swift 6.2 Markdown → ANSI renderer and CLI, inspired by [Markdansi](../Markdansi). Targets Apple platforms (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+) and ships a zero-dependency runtime (`swift-markdown` + `swift-displaywidth`).
+Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](../Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+).
 
-## Library
+## Features
+- GFM blocks & inline: headings, lists/tasks, blockquotes, code (boxed/labels/gutter), tables (align/pad/dense/truncate/ellipsis), HR, strike, links/autolinks, inline code, emphasis/strong.
+- OSC‑8 hyperlinks with auto-detect + force/disable flags; plain suffix fallback when color off.
+- Unicode-aware width/wrapping (emoji, CJK) using swift-displaywidth.
+- Themes: default, dim, bright, solarized, monochrome, contrast; custom theme support.
+- Highlighter hook: inject your own ANSI coloring for fenced code.
+- CLI parity with Markdansi flags, plus `--force-links`.
 
+## Install
+SwiftPM package:
+```swift
+.package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.1.0")
+```
+Targets: `Swiftdansi` (library), `swiftdansi` (CLI binary).
+
+## Library usage
 ```swift
 import Swiftdansi
 
+// One-off render
 let ansi = render("# Hello **world**", options: RenderOptions(width: 60))
 
+// Reusable renderer
 let renderNoWrap = createRenderer(options: RenderOptions(wrap: false))
 let out = renderNoWrap("A very long line without wrapping")
 
+// Plain text (no ANSI/OSC)
 let plain = strip("link to [x](https://example.com)")
+
+// Custom theme & highlighter
+let custom = createRenderer(options: RenderOptions(
+    theme: .bright,
+    highlighter: { code, _ in code.uppercased() }
+))
 ```
 
-### Options
-- `wrap` (default `true`), `width` (TTY columns or 80 when wrapping).
-- `color` (default TTY), `hyperlinks` (auto when color is on).
-- `theme`: `default | dim | bright | solarized | monochrome | contrast` or pass a `customTheme`.
+### Options (RenderOptions)
+- `wrap` (default `true`), `width` (TTY cols or 80 when wrapping).
+- `color` (default TTY), `hyperlinks` (auto when color on), `force-links` / `no-links` via CLI.
+- `theme`: `.default | .dim | .bright | .solarized | .monochrome | .contrast` or `customTheme`.
 - Lists: `listIndent` (default 2).
 - Quotes: `quotePrefix` (default `│ `).
 - Tables: `tableBorder unicode|ascii|none`, `tablePadding`, `tableDense`, `tableTruncate`, `tableEllipsis`.
 - Code: `codeBox`, `codeGutter`, `codeWrap`.
-- `highlighter` hook `(code, lang?) -> String` lets you inject ANSI-colored code.
+- `highlighter` `(code, lang?) -> String`.
 
 ## CLI
-
 ```
-swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-links]
-          [--force-links] [--theme default|dim|bright|solarized|monochrome|contrast]
+swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-links] [--force-links]
+          [--theme default|dim|bright|solarized|monochrome|contrast]
           [--list-indent N] [--quote-prefix STR]
           [--table-border unicode|ascii|none] [--table-padding N] [--table-dense]
-          [--table-truncate] [--table-ellipsis STR]
-          [--code-wrap] [--code-box] [--code-gutter]
+          [--table-truncate[=true|false]] [--table-ellipsis STR]
+          [--code-wrap[=true|false]] [--code-box[=true|false]] [--code-gutter]
 ```
+- Input: stdin if `--in` missing or `-`; output: stdout unless `--out`.
+- Hyperlinks: auto-detect when color on; override with `--force-links` or `--no-links`.
+- Handles SIGPIPE for pipelines.
 
-- Input: stdin if `--in` missing or `-`.
-- Output: stdout unless `--out` given.
-- Hyperlinks default to auto-detect; use `--force-links` or `--no-links` to override.
-- Handles SIGPIPE gracefully for pipelines.
+## Testing & CI
+- Tests (Swift-Testing): `swift test`
+- CI: `.github/workflows/ci.yml` runs `swift test` on macOS 15.
 
-## Development
-- Build: `swift build`
-- Test (Swift Testing): `swift test`
-- CI: GitHub Actions workflow `ci.yml` runs `swift test` on macOS 15.
+## License
+MIT
 
-See `docs/spec.md` for detailed behavior notes and parity expectations with Markdansi.
+## Inspiration
+Built as a Swift port of [Markdansi](../Markdansi); see that project for the original TypeScript implementation and behavior notes.
