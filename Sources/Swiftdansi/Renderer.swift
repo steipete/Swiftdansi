@@ -85,20 +85,35 @@ private func normalizeBlocks(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
 private func renderParagraph(_ para: Paragraph, ctx: RenderContext, indentLevel: Int) -> [String] {
     let text = renderInline(children: Array(para.inlineChildren), ctx: ctx)
     let prefix = String(repeating: " ", count: ctx.options.listIndent * indentLevel)
-    let normalized = text
-        .split(separator: "\n", omittingEmptySubsequences: false)
-        .map { line -> String in
-            var s = String(line)
-            let defRegex = /^\[[^\]]+]:\s+\S/
-            if s.firstMatch(of: defRegex) != nil {
-                s = s.replacingOccurrences(of: "“", with: "\"").replacingOccurrences(of: "”", with: "\"")
+    let rawLines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+    let defRegex = /^\[[^\]]+]:\s+\S/
+    var normalized: [String] = []
+    var inDefinitions = false
+    for line in rawLines {
+        var s = line
+        if s.firstMatch(of: defRegex) != nil {
+            s = s.replacingOccurrences(of: "“", with: "\"").replacingOccurrences(of: "”", with: "\"")
+            if let last = normalized.last, !last.isEmpty {
+                normalized.append("") // blank line before footer-style definitions
             }
-            return s
+            normalized.append(s)
+            inDefinitions = true
+            continue
         }
-        .flatMap { line -> [String] in
-            wrapWithPrefix(line, width: ctx.options.width ?? 80, wrap: ctx.options.wrap, prefix: prefix)
+        if inDefinitions, s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            continue // drop stray blank lines inside definitions footer block
         }
-    return normalized.map { $0 + "\n" }
+        inDefinitions = false
+        normalized.append(s)
+    }
+
+    var wrapped = normalized.flatMap { line -> [String] in
+        wrapWithPrefix(line, width: ctx.options.width ?? 80, wrap: ctx.options.wrap, prefix: prefix)
+    }
+    if let first = normalized.first(where: { !$0.isEmpty }), first.firstMatch(of: defRegex) != nil {
+        wrapped.insert(prefix + "", at: 0) // ensure a blank line before footer definitions
+    }
+    return wrapped.map { $0 + "\n" }
 }
 
 private func renderHeading(_ heading: Heading, ctx: RenderContext) -> [String] {
@@ -153,7 +168,7 @@ private func renderListItem(
     start: Int,
     idx: Int) -> [String]
 {
-    let marker = ordered ? "\(start + idx)." : "-"
+    let marker = ordered ? "\(start + idx)." : ctx.options.listMarker
     let markerStyled = ctx.styler.apply(marker, style: ctx.options.theme.listMarker)
     let taskBox: String? = {
         guard let checkbox = item.checkbox else { return nil }
@@ -196,13 +211,16 @@ private func renderListItem(
 // swiftlint:enable function_parameter_count
 
 private func renderCodeBlock(_ code: CodeBlock, ctx: RenderContext) -> [String] {
-    let lang = code.language
+    var lang = code.language
     var lines = code.code.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
     while lines.last?.isEmpty == true {
         lines.removeLast()
     }
     if lines.isEmpty { lines = [""] }
-    let isDiff = lang?.lowercased() == "diff" || looksLikeDiff(code.code)
+    if lang == nil, looksLikeDiff(code.code) {
+        lang = "diff"
+    }
+    let isDiff = lang?.lowercased() == "diff"
     let gutterWidth = ctx.options.codeGutter ? String(lines.count).count + 2 : 0
     let shouldWrap = !isDiff && ctx.options.codeWrap
     let useBox = ctx.options.codeBox && lines.count > 1
@@ -519,12 +537,23 @@ private func mergeAdjacentCodeBlocks(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
     for block in blocks {
         if let code = block as? CodeBlock {
             if var p = pending, (p.language ?? "") == (code.language ?? "") {
-                let merged = p.code + "\n" + code.code
+                let merged = trimTrailingNewlines(p.code) + "\n" + trimTrailingNewlines(code.code)
                 p.code = merged
                 pending = p
             } else {
                 flush()
                 pending = code
+            }
+            continue
+        }
+        if let list = block as? ListItemContainer, let flattened = flattenCodeList(list) {
+            if var p = pending, (p.language ?? "") == (flattened.language ?? "") {
+                let merged = trimTrailingNewlines(p.code) + "\n" + trimTrailingNewlines(flattened.code)
+                p.code = merged
+                pending = p
+            } else {
+                flush()
+                pending = flattened
             }
             continue
         }
@@ -582,6 +611,11 @@ private func flattenCodeList(_ list: ListItemContainer) -> CodeBlock? {
     let new = CodeBlock(language: lang, merged)
     return new
 }
+
+private func trimTrailingNewlines(_ text: String) -> String {
+    text.replacingOccurrences(of: "\n+$", with: "", options: .regularExpression)
+}
+
 
 private struct TableBox {
     let topLeft: String

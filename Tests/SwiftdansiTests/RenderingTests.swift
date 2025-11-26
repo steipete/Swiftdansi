@@ -387,6 +387,123 @@ struct RenderingTests {
         let md = "Body line.\n[1]: https://example.com \"Title\"\nNext."
         let out = render(md, options: RenderOptions(wrap: true, color: false))
         let lines = out.split(separator: "\n", omittingEmptySubsequences: false)
+        #expect(lines.first == "Body line.")
+        #expect(lines.dropFirst().first == "") // blank line before footer definition
         #expect(lines.contains("[1]: https://example.com \"Title\""))
+        #expect(lines.contains("Next."))
+    }
+
+    @Test
+    func diffBlocksGainLabelWhenUnspecified() {
+        let md = """
+        ```
+        diff --git a/foo b/foo
+        --- a/foo
+        +++ b/foo
+        ```
+        """
+        let out = render(md, options: RenderOptions(wrap: false, color: false))
+        let top = out.split(separator: "\n").first ?? ""
+        #expect(top.contains("[diff]"))
+    }
+
+    @Test
+    func codeListMergesWithAdjacentBlocks() {
+        let md = """
+        ```
+        first
+        ```
+
+        - ```
+          second
+          ```
+        """
+        let out = render(md, options: RenderOptions(wrap: false, color: false))
+        let boxCount = out.count(where: { $0 == "┌" })
+        #expect(boxCount == 1)
+        #expect(out.contains("first"))
+        #expect(out.contains("second"))
+    }
+
+    @Test
+    func snapshotDefinitionFooterMatchesMarkdansi() {
+        let md = """
+        Body line.
+        [1]: https://example.com "Title"
+        Next.
+        """
+        let expected = """
+        Body line.
+
+        [1]: https://example.com "Title"
+        Next.
+        """
+        let out = render(md, options: RenderOptions(wrap: true, hyperlinks: false, color: false))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    @Test
+    func snapshotDiffBoxMatchesMarkdansi() {
+        let md = """
+        ```
+        --- a/foo
+        +++ b/foo
+        @@ -1 +1 @@
+        - a very very very very long line
+        + another very very very very long line
+        ```
+        """
+        let expected = """
+        ┌ [diff]──────────────────────────────────┐
+        │ --- a/foo                               │
+        │ +++ b/foo                               │
+        │ @@ -1 +1 @@                             │
+        │ - a very very very very long line       │
+        │ + another very very very very long line │
+        └─────────────────────────────────────────┘
+
+        """
+        let out = render(md, options: RenderOptions(wrap: true, hyperlinks: false, color: false))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    @Test
+    func snapshotCodeListMergeMatchesMarkdansi() {
+        let md = """
+        ```
+        first
+        ```
+
+        - ```
+          second
+          ```
+        """
+        let expected = """
+        ┌ ────── ┐
+        │ first  │
+        │ second │
+        └────────┘
+
+        """
+        let out = render(md, options: RenderOptions(wrap: true, hyperlinks: false, color: false))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    @Test
+    func snapshotSimpleTableMatchesMarkdansi() {
+        let md = """
+        | h1 | h2 |
+        | --- | --- |
+        | a | b |
+        """
+        let expected = """
+        ┌────┬────┐
+        │ h1 │ h2 │
+        ├────┼────┤
+        │ a  │ b  │
+        └────┴────┘
+        """
+        let out = render(md, options: RenderOptions(wrap: true, hyperlinks: false, color: false))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == expected.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

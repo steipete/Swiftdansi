@@ -11,6 +11,7 @@ struct ResolvedOptions: Sendable {
     var theme: Theme
     var highlighter: Highlighter?
     var listIndent: Int
+    var listMarker: String
     var quotePrefix: String
     var tableBorder: TableBorder
     var tablePadding: Int
@@ -31,6 +32,7 @@ func resolve(_ user: RenderOptions) -> ResolvedOptions {
     let hyperlinks = color ? (user.hyperlinks ?? hyperlinkSupported()) : false
     let baseTheme = user.customTheme ?? (user.theme.map { Themes.named($0) } ?? Themes.default)
     let listIndent = user.listIndent ?? 2
+    let listMarker = user.listMarker ?? "-"
     let quotePrefix = user.quotePrefix ?? "│ "
     let tableBorder = user.tableBorder ?? .unicode
     let tablePadding = user.tablePadding ?? 1
@@ -49,6 +51,7 @@ func resolve(_ user: RenderOptions) -> ResolvedOptions {
         theme: baseTheme,
         highlighter: user.highlighter,
         listIndent: listIndent,
+        listMarker: listMarker,
         quotePrefix: quotePrefix,
         tableBorder: tableBorder,
         tablePadding: tablePadding,

@@ -10,6 +10,7 @@ public struct RenderOptions: Sendable {
     public var theme: ThemeName?
     public var customTheme: Theme?
     public var listIndent: Int?
+    public var listMarker: String?
     public var quotePrefix: String?
     public var tableBorder: TableBorder?
     public var tablePadding: Int?
@@ -29,6 +30,7 @@ public struct RenderOptions: Sendable {
         theme: ThemeName? = nil,
         customTheme: Theme? = nil,
         listIndent: Int? = nil,
+        listMarker: String? = nil,
         quotePrefix: String? = nil,
         tableBorder: TableBorder? = nil,
         tablePadding: Int? = nil,
@@ -47,6 +49,7 @@ public struct RenderOptions: Sendable {
         self.theme = theme
         self.customTheme = customTheme
         self.listIndent = listIndent
+        self.listMarker = listMarker
         self.quotePrefix = quotePrefix
         self.tableBorder = tableBorder
         self.tablePadding = tablePadding
