@@ -1,4 +1,4 @@
-# Swiftdansi
+# 🎨 Swiftdansi: Wraps, colors, links—no baggage.
 
 Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+).
 
