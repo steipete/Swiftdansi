@@ -45,14 +45,23 @@ public struct SwiftdansiCommand: ParsableCommand {
     @Flag(help: "Reduce separator rows in tables")
     public var tableDense: Bool = false
 
+    @Option(help: "Table truncation toggle (true/false)")
+    public var tableTruncate: Bool?
+
     @Flag(help: "Disable table cell truncation")
     public var noTableTruncate: Bool = false
 
     @Option(help: "Table ellipsis marker")
     public var tableEllipsis: String?
 
+    @Option(help: "Code wrap toggle (true/false)")
+    public var codeWrap: Bool?
+
     @Flag(help: "Disable code line wrapping")
     public var noCodeWrap: Bool = false
+
+    @Option(help: "Code box toggle (true/false)")
+    public var codeBox: Bool?
 
     @Flag(help: "Disable code box drawing")
     public var noCodeBox: Bool = false
@@ -88,10 +97,10 @@ public struct SwiftdansiCommand: ParsableCommand {
         opts.tableBorder = tableBorder
         opts.tablePadding = tablePadding
         opts.tableDense = tableDense
-        opts.tableTruncate = !noTableTruncate
+        if let t = tableTruncate { opts.tableTruncate = t } else { opts.tableTruncate = !noTableTruncate }
         opts.tableEllipsis = tableEllipsis
-        opts.codeWrap = !noCodeWrap
-        opts.codeBox = !noCodeBox
+        if let cw = codeWrap { opts.codeWrap = cw } else { opts.codeWrap = !noCodeWrap }
+        if let cb = codeBox { opts.codeBox = cb } else { opts.codeBox = !noCodeBox }
         opts.codeGutter = codeGutter
 
         let output = Swiftdansi.render(markdown, options: opts)

@@ -38,8 +38,9 @@ private struct RenderContext {
 // MARK: - Block Rendering
 
 private func renderBlocks(_ blocks: [BlockMarkup], ctx: RenderContext, indentLevel: Int, isTightList: Bool) -> [String] {
+    let normalized = mergeAdjacentCodeBlocks(applyLabelParagraphs(blocks))
     var out: [String] = []
-    for block in blocks {
+    for block in normalized {
         if let para = block as? Paragraph {
             out.append(contentsOf: renderParagraph(para, ctx: ctx, indentLevel: indentLevel))
         } else if let heading = block as? Heading {
@@ -402,6 +403,58 @@ private func renderReferenceLikeCode(_ code: CodeBlock, ctx: RenderContext) -> [
 private func listHasTightSpacing(_ list: ListItemContainer) -> Bool? {
     // SwiftMarkdown does not expose a direct flag; best effort: assume tight if no blank paragraphs between items.
     return true
+}
+
+private func applyLabelParagraphs(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
+    var out: [BlockMarkup] = []
+    var i = 0
+    while i < blocks.count {
+        let block = blocks[i]
+        if let para = block as? Paragraph {
+            let inline = Array(para.inlineChildren)
+            if inline.count == 1, let text = inline.first as? Text {
+                let trimmed = text.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                let match = trimmed.wholeMatch(of: /^\[([^\]]+)\]$/)
+                if let langSub = match?.output.1,
+                   i + 1 < blocks.count,
+                   var code = blocks[i + 1] as? CodeBlock,
+                   code.language == nil {
+                    code.language = String(langSub)
+                    out.append(code)
+                    i += 2
+                    continue
+                }
+            }
+        }
+        out.append(block)
+        i += 1
+    }
+    return out
+}
+
+private func mergeAdjacentCodeBlocks(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
+    var out: [BlockMarkup] = []
+    var pending: CodeBlock?
+    func flush() {
+        if let p = pending { out.append(p); pending = nil }
+    }
+    for block in blocks {
+        if let code = block as? CodeBlock {
+            if var p = pending, (p.language ?? "") == (code.language ?? "") {
+                let merged = p.code + "\n" + code.code
+                p.code = merged
+                pending = p
+            } else {
+                flush()
+                pending = code
+            }
+            continue
+        }
+        flush()
+        out.append(block)
+    }
+    flush()
+    return out
 }
 
 private func flattenCodeList(_ list: ListItemContainer) -> CodeBlock? {
