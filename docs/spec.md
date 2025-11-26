@@ -23,7 +23,7 @@ Goal: Swift 6.2 Markdown → ANSI renderer and CLI, mirroring Markdansi behavior
 - `highlighter` closure `(code, lang?) -> String` applied to fenced code lines.
 
 ### CLI
-`swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-links] [--theme ...] [--list-indent N] [--quote-prefix STR] [--table-border ascii|unicode|none] [--table-padding N] [--table-dense] [--table-truncate] [--table-ellipsis STR] [--code-wrap] [--code-box] [--code-gutter]`
+`swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-links] [--force-links] [--theme ...] [--list-indent N] [--quote-prefix STR] [--table-border ascii|unicode|none] [--table-padding N] [--table-dense] [--table-truncate] [--table-ellipsis STR] [--code-wrap] [--code-box] [--code-gutter]`
 - Input: stdin when `--in` missing or `-`.
 - Output: stdout unless `--out` provided.
 - Handles SIGPIPE for filter-style use.

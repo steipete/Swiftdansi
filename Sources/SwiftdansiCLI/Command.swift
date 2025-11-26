@@ -23,6 +23,9 @@ public struct SwiftdansiCommand: ParsableCommand {
 
     @Flag(help: "Disable OSC-8 hyperlinks")
     public var noLinks: Bool = false
+    
+    @Flag(help: "Force-enable OSC-8 hyperlinks (overrides auto-detect)")
+    public var forceLinks: Bool = false
 
     @Option(help: "Theme (default|dim|bright|solarized|monochrome|contrast)")
     public var theme: ThemeName?
@@ -77,7 +80,8 @@ public struct SwiftdansiCommand: ParsableCommand {
         opts.wrap = !noWrap
         opts.width = width
         opts.color = !noColor
-        opts.hyperlinks = !noLinks
+        if forceLinks { opts.hyperlinks = true }
+        else if noLinks { opts.hyperlinks = false }
         opts.theme = theme
         opts.listIndent = listIndent
         opts.quotePrefix = quotePrefix

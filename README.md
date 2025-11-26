@@ -29,7 +29,7 @@ let plain = strip("link to [x](https://example.com)")
 
 ```
 swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-links]
-          [--theme default|dim|bright|solarized|monochrome|contrast]
+          [--force-links] [--theme default|dim|bright|solarized|monochrome|contrast]
           [--list-indent N] [--quote-prefix STR]
           [--table-border unicode|ascii|none] [--table-padding N] [--table-dense]
           [--table-truncate] [--table-ellipsis STR]
@@ -38,6 +38,7 @@ swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-l
 
 - Input: stdin if `--in` missing or `-`.
 - Output: stdout unless `--out` given.
+- Hyperlinks default to auto-detect; use `--force-links` or `--no-links` to override.
 - Handles SIGPIPE gracefully for pipelines.
 
 ## Development
