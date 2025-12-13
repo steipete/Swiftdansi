@@ -49,6 +49,9 @@ playground.xcworkspace
 
 Carthage/Build/
 
+# macOS
+.DS_Store
+
 # fastlane
 #
 # It is recommended to not store the screenshots in the git repo.
