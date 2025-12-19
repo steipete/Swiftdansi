@@ -23,6 +23,26 @@ struct RenderingTests {
     }
 
     @Test
+    func softBreaksCollapseToSpaces() {
+        let out = strip("Hello\nworld", options: RenderOptions(wrap: true, width: 80))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == "Hello world")
+    }
+
+    @Test
+    func softBreaksTrimIndentation() {
+        let out = strip("Hello\n  world", options: RenderOptions(wrap: true, width: 200))
+        #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == "Hello world")
+    }
+
+    @Test
+    func hardBreaksPreserved() {
+        let out = strip("line one  \nline two", options: RenderOptions(wrap: true, width: 80))
+        let lines = out.trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: "\n", omittingEmptySubsequences: false)
+        #expect(lines.count > 1)
+    }
+
+    @Test
     func hyperlinksToggle() {
         let rendered = render(
             "[x](https://example.com)",
@@ -68,6 +88,16 @@ struct RenderingTests {
         let out = strip("- [ ] open\n- [x] done", options: RenderOptions())
         #expect(out.contains("[ ] open"))
         #expect(out.contains("[x] done"))
+    }
+
+    @Test
+    func softBreaksCollapseInsideListItems() {
+        let md =
+            "- Section IV (signature): A concluding line stating the document was \"typed on 2025-12-18 with a\n" +
+            "  stubborn cursor.\""
+        let out = strip(md, options: RenderOptions(wrap: true, width: 200))
+        #expect(out.contains("with a stubborn cursor."))
+        #expect(!out.contains("\n\n"))
     }
 
     @Test
@@ -287,6 +317,33 @@ struct RenderingTests {
     func wrapTextEdgeCases() {
         #expect(wrapText("", width: 5, wrap: true) == [""])
         #expect(wrapText("abc", width: 0, wrap: true) == ["abc"])
+    }
+
+    @Test
+    func wrapAvoidsTrailingArticlesWhenPossible() {
+        let md =
+            "* **Section IV (signature):** A concluding line stating the document was \"typed on 2025-12-18 with a stubborn cursor.\""
+        let out = strip(md, options: RenderOptions(wrap: true, width: 100))
+        let lines = out.trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: "\n", omittingEmptySubsequences: false)
+        #expect(lines.count == 2)
+        #expect(!lines[0].hasSuffix("with a"))
+        #expect(lines[1].contains("with a stubborn cursor."))
+    }
+
+    @Test
+    func wrapMovesTrailingArticleToNextLine() {
+        #expect(wrapText("hello the world", width: 11, wrap: true) == ["hello", "the world"])
+    }
+
+    @Test
+    func wrapMovesTrailingPrepositionArticleToNextLine() {
+        #expect(wrapText("walk in the rain", width: 11, wrap: true) == ["walk", "in the rain"])
+    }
+
+    @Test
+    func wrapDoesNotTreatPunctuatedWordsAsOrphans() {
+        #expect(wrapText("hello the, world", width: 11, wrap: true) == ["hello the,", "world"])
     }
 
     @Test

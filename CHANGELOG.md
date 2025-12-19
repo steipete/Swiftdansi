@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.1.1 — 2025-12-19
+
+### Added
+- Soft line breaks now collapse to spaces (with indentation trimmed) while hard breaks remain, mirroring Markdansi rendering rules.
+- Wrapping avoids orphaned trailing articles/prepositions when possible for cleaner line breaks.
+
+### Changed
+- Wrap logic now trims trailing whitespace when emitting lines and aligns orphan-handling behavior with Markdansi.
+- Added regression tests for soft-break normalization and orphan-aware wrapping.
+
 ## 0.1.0 — 2025-11-26
 
 ### Added

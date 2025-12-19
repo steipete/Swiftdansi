@@ -27,7 +27,7 @@ Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://git
 ## Install
 SwiftPM package:
 ```swift
-.package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.1.0")
+.package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.1.1")
 ```
 Targets: `Swiftdansi` (library), `swiftdansi` (CLI binary).
 

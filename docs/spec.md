@@ -31,7 +31,7 @@ Goal: Swift 6.2 Markdown → ANSI renderer and CLI, mirroring Markdansi behavior
 ## Behavior & Rules
 - Uses swift-markdown AST; ignores inline HTML; treats `mailto:` links as plain text.
 - Hyperlinks: OSC‑8 when enabled and color is on; otherwise falls back to underlined label plus `(url)` suffix.
-- Wrapping: word-wrap on spaces using display width; preserves hard breaks; width ignored when `wrap=false`.
+- Wrapping: word-wrap on spaces using display width; soft breaks collapse to spaces (indent trimmed) unless adjacent to definitions; preserves hard breaks; width ignored when `wrap=false`. Wrap tries to avoid orphaned trailing articles/prepositions when possible.
 - Code blocks: optional box with label, optional line-number gutter; wraps lines when `codeWrap=true` except for diff-like blocks; single-line blocks omit the box.
 - Tables: unicode/ascii/none borders, padding, alignment from GFM markers, optional truncation with ellipsis; width balancing shrinks widest columns until fit.
 - Lists: supports ordered/unordered and task checkboxes; tight rendering by default.

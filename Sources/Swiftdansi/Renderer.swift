@@ -3,6 +3,7 @@ import Markdown
 
 private let hrWidth = 40
 private let maxTableColWidth = 40
+private let hardBreakMarker: Character = "\u{000B}"
 
 public func render(_ markdown: String, options: RenderOptions = RenderOptions()) -> String {
     let resolved = resolve(options)
@@ -83,7 +84,7 @@ private func normalizeBlocks(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
 }
 
 private func renderParagraph(_ para: Paragraph, ctx: RenderContext, indentLevel: Int) -> [String] {
-    let text = renderInline(children: Array(para.inlineChildren), ctx: ctx)
+    let text = normalizeParagraphInlineText(renderInline(children: Array(para.inlineChildren), ctx: ctx))
     let prefix = String(repeating: " ", count: ctx.options.listIndent * indentLevel)
     let rawLines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
     let defRegex = /^\[[^\]]+]:\s+\S/
@@ -114,6 +115,49 @@ private func renderParagraph(_ para: Paragraph, ctx: RenderContext, indentLevel:
         wrapped.insert(prefix + "", at: 0) // ensure a blank line before footer definitions
     }
     return wrapped.map { $0 + "\n" }
+}
+
+private func normalizeParagraphInlineText(_ text: String) -> String {
+    guard text.contains("\n") || text.contains(String(hardBreakMarker)) else { return text }
+    enum BreakKind { case soft, hard }
+    struct Segment { var text: String; var breakAfter: BreakKind? }
+    var segments: [Segment] = []
+    var current = ""
+    for ch in text {
+        if ch == "\n" || ch == hardBreakMarker {
+            segments.append(Segment(text: current, breakAfter: ch == hardBreakMarker ? .hard : .soft))
+            current = ""
+            continue
+        }
+        current.append(ch)
+    }
+    segments.append(Segment(text: current, breakAfter: nil))
+    let defRegex = /^\[[^\]]+]:\s+\S/
+    var out = segments.first?.text ?? ""
+    guard segments.count > 1 else { return out }
+    for i in 0..<(segments.count - 1) {
+        let kind = segments[i].breakAfter ?? .soft
+        let left = segments[i].text
+        let right = segments[i + 1].text
+        if kind == .hard {
+            out.append("\n")
+            out.append(right)
+            continue
+        }
+        let leftTrim = trimLeadingWhitespace(left)
+        let rightTrim = trimLeadingWhitespace(right)
+        let keepNewline = left.isEmpty
+            || right.isEmpty
+            || leftTrim.firstMatch(of: defRegex) != nil
+            || rightTrim.firstMatch(of: defRegex) != nil
+        out.append(keepNewline ? "\n" : " ")
+        out.append(rightTrim)
+    }
+    return out
+}
+
+private func trimLeadingWhitespace(_ text: String) -> String {
+    String(text.drop(while: { $0.isWhitespace }))
 }
 
 private func renderHeading(_ heading: Heading, ctx: RenderContext) -> [String] {
@@ -384,8 +428,10 @@ private func renderInline(children: [Markup], ctx: RenderContext) -> String {
             out += ctx.styler.apply(code.code, style: theme)
         } else if let link = child as? Link {
             out += renderLink(link, ctx: ctx)
-        } else if child is SoftBreak || child is LineBreak {
+        } else if child is SoftBreak {
             out += "\n"
+        } else if child is LineBreak {
+            out += String(hardBreakMarker)
         } else if child is InlineHTML {
             // ignore inline html
         } else {
