@@ -5,20 +5,20 @@ import PackageDescription
 let package = Package(
     name: "SwiftdansiDemo",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v14),
     ],
     dependencies: [
-        .package(path: "../..")
+        .package(path: "../.."),
     ],
     targets: [
         .executableTarget(
             name: "SwiftdansiDemo",
             dependencies: [
-                .product(name: "Swiftdansi", package: "Swiftdansi")
+                .product(name: "Swiftdansi", package: "Swiftdansi"),
             ]),
         .testTarget(
             name: "SwiftdansiDemoTests",
             dependencies: [
-                .product(name: "Swiftdansi", package: "Swiftdansi")
-            ])
+                .product(name: "Swiftdansi", package: "Swiftdansi"),
+            ]),
     ])

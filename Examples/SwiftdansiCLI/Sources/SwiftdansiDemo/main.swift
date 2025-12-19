@@ -26,17 +26,17 @@ print(greeting)
 
 private func printUsage() {
     print("""
-Swiftdansi Demo (Swift 6.2)
+    Swiftdansi Demo (Swift 6.2)
 
-Usage:
-  swift run SwiftdansiDemo -- [options] [path]
+    Usage:
+      swift run SwiftdansiDemo -- [options] [path]
 
-Options:
-  --theme <default|dim|bright|solarized|monochrome|contrast>
-  --width <n>
-  --plain
-  -h, --help
-""")
+    Options:
+      --theme <default|dim|bright|solarized|monochrome|contrast>
+      --width <n>
+      --plain
+      -h, --help
+    """)
 }
 
 private func printError(_ message: String) {
