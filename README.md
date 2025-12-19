@@ -75,6 +75,15 @@ swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-l
 - Hyperlinks: auto-detect when color on; override with `--force-links` or `--no-links`.
 - Handles SIGPIPE for pipelines.
 
+## Example CLI (macOS)
+Tiny demo CLI that uses the Swiftdansi library (Swift 6.2):
+
+```
+cd Examples/SwiftdansiCLI
+swift run SwiftdansiDemo --
+swift run SwiftdansiDemo -- ../../README.md --theme bright --width 72
+```
+
 ## Development
 - Build: `swift build` (or `pnpm build`)
 - Test: `swift test` (or `pnpm test`)
