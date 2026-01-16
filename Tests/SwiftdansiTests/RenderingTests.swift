@@ -322,7 +322,8 @@ struct RenderingTests {
     @Test
     func wrapAvoidsTrailingArticlesWhenPossible() {
         let md =
-            "* **Section IV (signature):** A concluding line stating the document was \"typed on 2025-12-18 with a stubborn cursor.\""
+            "* **Section IV (signature):** A concluding line stating the document was \"typed on 2025-12-18 " +
+            "with a stubborn cursor.\""
         let out = strip(md, options: RenderOptions(wrap: true, width: 100))
         let lines = out.trimmingCharacters(in: .whitespacesAndNewlines)
             .split(separator: "\n", omittingEmptySubsequences: false)
