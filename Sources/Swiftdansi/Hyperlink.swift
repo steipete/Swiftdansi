@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-struct HyperlinkSupport: Sendable {
+struct HyperlinkSupport {
     let environment: [String: String]
     let isTTY: Bool
 
@@ -33,7 +33,7 @@ func hyperlinkSupported(stream: FileHandle = .standardOutput) -> Bool {
     HyperlinkSupport.current(stream: stream).supported()
 }
 
-// Testable entry.
+/// Testable entry.
 func hyperlinkSupported(env: [String: String], isTTY: Bool) -> Bool {
     HyperlinkSupport(environment: env, isTTY: isTTY).supported()
 }

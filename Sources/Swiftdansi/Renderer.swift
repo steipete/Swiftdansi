@@ -79,8 +79,7 @@ private func renderBlocks(
 private func normalizeBlocks(_ blocks: [BlockMarkup]) -> [BlockMarkup] {
     let mergedRefs = mergeReferenceContinuations(blocks)
     let labelled = applyLabelParagraphs(mergedRefs)
-    let mergedCodes = mergeAdjacentCodeBlocks(labelled)
-    return mergedCodes
+    return mergeAdjacentCodeBlocks(labelled)
 }
 
 private func renderParagraph(_ para: Paragraph, ctx: RenderContext, indentLevel: Int) -> [String] {
@@ -668,8 +667,7 @@ private func flattenCodeList(_ list: ListItemContainer) -> CodeBlock? {
     let sameLang = Set(codes.map { $0.language ?? "" }).count == 1
     let lang = sameLang ? codes.first?.language : nil
     let merged = codes.map(\.code).joined(separator: "\n")
-    let new = CodeBlock(language: lang, merged)
-    return new
+    return CodeBlock(language: lang, merged)
 }
 
 private func trimTrailingNewlines(_ text: String) -> String {

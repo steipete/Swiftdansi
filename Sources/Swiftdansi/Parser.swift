@@ -6,8 +6,7 @@ func dedent(_ markdown: String) -> String {
     let indents = lines
         .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         .compactMap { line -> Int? in
-            let count = line.prefix { $0 == " " || $0 == "\t" }.count
-            return count
+            return line.prefix { $0 == " " || $0 == "\t" }.count
         }
     guard let minIndent = indents.min(), minIndent > 0 else { return markdown }
     let trimmed = lines.map { line -> String in

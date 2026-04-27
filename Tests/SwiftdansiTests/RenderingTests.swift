@@ -5,7 +5,7 @@ import Testing
 
 struct RenderingTests {
     @Test
-    func inlineFormatting() {
+    func `inline formatting`() {
         let out = strip("Hello _em_ **strong** `code` ~~gone~~", options: RenderOptions(width: 80))
         #expect(out.contains("em"))
         #expect(out.contains("strong"))
@@ -14,7 +14,7 @@ struct RenderingTests {
     }
 
     @Test
-    func wrappingParagraphs() {
+    func `wrapping paragraphs`() {
         let out = strip(
             "one two three four five six seven eight nine ten",
             options: RenderOptions(wrap: true, width: 10))
@@ -23,19 +23,19 @@ struct RenderingTests {
     }
 
     @Test
-    func softBreaksCollapseToSpaces() {
+    func `soft breaks collapse to spaces`() {
         let out = strip("Hello\nworld", options: RenderOptions(wrap: true, width: 80))
         #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == "Hello world")
     }
 
     @Test
-    func softBreaksTrimIndentation() {
+    func `soft breaks trim indentation`() {
         let out = strip("Hello\n  world", options: RenderOptions(wrap: true, width: 200))
         #expect(out.trimmingCharacters(in: .whitespacesAndNewlines) == "Hello world")
     }
 
     @Test
-    func hardBreaksPreserved() {
+    func `hard breaks preserved`() {
         let out = strip("line one  \nline two", options: RenderOptions(wrap: true, width: 80))
         let lines = out.trimmingCharacters(in: .whitespacesAndNewlines)
             .split(separator: "\n", omittingEmptySubsequences: false)
@@ -43,7 +43,7 @@ struct RenderingTests {
     }
 
     @Test
-    func hyperlinksToggle() {
+    func `hyperlinks toggle`() {
         let rendered = render(
             "[x](https://example.com)",
             options: RenderOptions(wrap: false, hyperlinks: true, color: true))
@@ -56,7 +56,7 @@ struct RenderingTests {
     }
 
     @Test
-    func codeBoxWithLabel() {
+    func `code box with label`() {
         let md = "```swift\nlet x = 1\nlet y = 2\n```"
         let out = render(md, options: RenderOptions(wrap: false, color: false))
         #expect(out.contains("┌"))
@@ -65,7 +65,7 @@ struct RenderingTests {
     }
 
     @Test
-    func tableRenders() {
+    func `table renders`() {
         let md = """
         | h1 | h2 |
         | --- | --- |
@@ -77,21 +77,21 @@ struct RenderingTests {
     }
 
     @Test
-    func longUrlOverflowsWhenWrapped() {
+    func `long url overflows when wrapped`() {
         let url = "https://example.com/averylongpathwithoutspaces"
         let out = strip(url, options: RenderOptions(wrap: true, width: 10))
         #expect(out.contains(url))
     }
 
     @Test
-    func taskListRenders() {
+    func `task list renders`() {
         let out = strip("- [ ] open\n- [x] done", options: RenderOptions())
         #expect(out.contains("[ ] open"))
         #expect(out.contains("[x] done"))
     }
 
     @Test
-    func softBreaksCollapseInsideListItems() {
+    func `soft breaks collapse inside list items`() {
         let md =
             "- Section IV (signature): A concluding line stating the document was \"typed on 2025-12-18 with a\n" +
             "  stubborn cursor.\""
@@ -101,13 +101,13 @@ struct RenderingTests {
     }
 
     @Test
-    func blockquotePrefix() {
+    func `blockquote prefix`() {
         let out = strip("> quoted line", options: RenderOptions())
         #expect(out.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("│ "))
     }
 
     @Test
-    func codeGutterWrapsSegments() {
+    func `code gutter wraps segments`() {
         let md = "```\n0123456789ABCDEFG\n```"
         let out = render(
             md,
@@ -117,7 +117,7 @@ struct RenderingTests {
     }
 
     @Test
-    func tableAlignmentAndTruncate() {
+    func `table alignment and truncate`() {
         let md = """
         | l | c | r |
         | :-- | :-: | --: |
@@ -128,7 +128,7 @@ struct RenderingTests {
     }
 
     @Test
-    func tableDenseNoneBorder() {
+    func `table dense none border`() {
         let md = """
         | h1 | h2 |
         | --- | --- |
@@ -143,7 +143,7 @@ struct RenderingTests {
     }
 
     @Test
-    func codeGutterMultiDigit() {
+    func `code gutter multi digit`() {
         let body = (1...12).map { "l\($0)" }.joined(separator: "\n")
         let md = "```\n\(body)\n```"
         let out = render(md, options: RenderOptions(wrap: false, color: false, codeGutter: true))
@@ -151,7 +151,7 @@ struct RenderingTests {
     }
 
     @Test
-    func boxedLabelWidth() {
+    func `boxed label width`() {
         let md = "```superlonglanguageid\nfoo\nbar\n```"
         let out = render(md, options: RenderOptions(wrap: false, color: false))
         let lines = out.split(separator: "\n", omittingEmptySubsequences: false)
@@ -160,7 +160,7 @@ struct RenderingTests {
     }
 
     @Test
-    func diffBlocksDoNotWrap() {
+    func `diff blocks do not wrap`() {
         let md = """
         ```
         --- a/foo
@@ -176,20 +176,20 @@ struct RenderingTests {
     }
 
     @Test
-    func singleLineCodeNoBox() {
+    func `single line code no box`() {
         let md = "```\nsolo\n```"
         let out = render(md, options: RenderOptions(wrap: false, color: false))
         #expect(!out.trimmingCharacters(in: .whitespacesAndNewlines).contains("┌"))
     }
 
     @Test
-    func hyperlinkSuffixWhenOff() {
+    func `hyperlink suffix when off`() {
         let out = strip("[link](https://example.com)", options: RenderOptions())
         #expect(out.contains("link (https://example.com)"))
     }
 
     @Test
-    func mailtoNotHyperlinkedInTable() {
+    func `mailto not hyperlinked in table`() {
         let md = """
         | File | Size |
         | --- | --- |
@@ -200,7 +200,7 @@ struct RenderingTests {
     }
 
     @Test
-    func asciiBorderTable() {
+    func `ascii border table`() {
         let md = """
         | h1 | h2 |
         | --- | --- |
@@ -211,7 +211,7 @@ struct RenderingTests {
     }
 
     @Test
-    func tableTruncateDisabledShowsFullCell() {
+    func `table truncate disabled shows full cell`() {
         let md = """
         | col |
         | --- |
@@ -223,7 +223,7 @@ struct RenderingTests {
     }
 
     @Test
-    func tablePaddingDenseCombination() {
+    func `table padding dense combination`() {
         let md = """
         | a | b |
         | --- | --- |
@@ -237,7 +237,7 @@ struct RenderingTests {
     }
 
     @Test
-    func themeDefaultColors() {
+    func `theme default colors`() {
         let ansi = render("`inline`\n\n```\nblock\n```\n\n# H", options: RenderOptions(wrap: false, color: true))
         #expect(ansi.contains("\u{001B}[36m")) // cyan inline code
         #expect(ansi.contains("\u{001B}[32m")) // green block code
@@ -245,13 +245,13 @@ struct RenderingTests {
     }
 
     @Test
-    func themeDimAddsDimAttribute() {
+    func `theme dim adds dim attribute`() {
         let ansi = render("`inline`", options: RenderOptions(wrap: false, color: true, theme: .dim))
         #expect(ansi.contains("\u{001B}[2m"))
     }
 
     @Test
-    func customHighlighterApplied() {
+    func `custom highlighter applied`() {
         let md = "```\ncode\n```"
         let out = render(
             md,
@@ -260,14 +260,14 @@ struct RenderingTests {
     }
 
     @Test
-    func cliForceLinksOverridesNoColor() throws {
+    func `cli force links overrides no color`() throws {
         let cmd = try SwiftdansiCommand.parse(["--force-links", "--no-color"])
         #expect(cmd.forceLinks)
         #expect(cmd.noColor)
     }
 
     @Test
-    func listOfCodeBlocksCollapses() {
+    func `list of code blocks collapses`() {
         let md = "- ```\n  first\n  ```\n- ```\n  second\n  ```"
         let out = render(md, options: RenderOptions(wrap: false, color: false))
         let boxCount = out.count(where: { $0 == "┌" })
@@ -277,7 +277,7 @@ struct RenderingTests {
     }
 
     @Test
-    func referenceLikeCodeNotBoxed() {
+    func `reference like code not boxed`() {
         let md = """
         ```
         [1]: https://example.com/icon "
@@ -292,7 +292,7 @@ struct RenderingTests {
     }
 
     @Test
-    func hrClampedToForty() {
+    func `hr clamped to forty`() {
         let md = "----"
         let out = strip(md, options: RenderOptions(wrap: true, width: 10))
         let line = out.split(separator: "\n").first ?? ""
@@ -300,13 +300,13 @@ struct RenderingTests {
     }
 
     @Test
-    func inlineHtmlIgnored() {
+    func `inline html ignored`() {
         let out = strip("<div>ignored</div>", options: RenderOptions())
         #expect(out.isEmpty)
     }
 
     @Test
-    func headingsAndHrRender() {
+    func `headings and hr render`() {
         let md = "# Title\n\n---\n"
         let out = strip(md, options: RenderOptions(wrap: true, width: 80))
         #expect(out.contains("Title"))
@@ -314,13 +314,13 @@ struct RenderingTests {
     }
 
     @Test
-    func wrapTextEdgeCases() {
+    func `wrap text edge cases`() {
         #expect(wrapText("", width: 5, wrap: true) == [""])
         #expect(wrapText("abc", width: 0, wrap: true) == ["abc"])
     }
 
     @Test
-    func wrapAvoidsTrailingArticlesWhenPossible() {
+    func `wrap avoids trailing articles when possible`() {
         let md =
             "* **Section IV (signature):** A concluding line stating the document was \"typed on 2025-12-18 " +
             "with a stubborn cursor.\""
@@ -333,29 +333,29 @@ struct RenderingTests {
     }
 
     @Test
-    func wrapMovesTrailingArticleToNextLine() {
+    func `wrap moves trailing article to next line`() {
         #expect(wrapText("hello the world", width: 11, wrap: true) == ["hello", "the world"])
     }
 
     @Test
-    func wrapMovesTrailingPrepositionArticleToNextLine() {
+    func `wrap moves trailing preposition article to next line`() {
         #expect(wrapText("walk in the rain", width: 11, wrap: true) == ["walk", "in the rain"])
     }
 
     @Test
-    func wrapDoesNotTreatPunctuatedWordsAsOrphans() {
+    func `wrap does not treat punctuated words as orphans`() {
         #expect(wrapText("hello the, world", width: 11, wrap: true) == ["hello the,", "world"])
     }
 
     @Test
-    func looseListHasBlankLine() {
+    func `loose list has blank line`() {
         let out = strip("- item 1\n\n- item 2", options: RenderOptions())
         let blanks = out.split(separator: "\n", omittingEmptySubsequences: false).count(where: { $0.isEmpty })
         #expect(blanks > 0)
     }
 
     @Test
-    func tableUnderscoreNotLinkified() {
+    func `table underscore not linkified`() {
         let md = """
         | Filename | Size |
         | --- | --- |
@@ -368,7 +368,7 @@ struct RenderingTests {
     }
 
     @Test
-    func tableInlineLinkRespected() {
+    func `table inline link respected`() {
         let md = """
         | File | Link |
         | --- | --- |
@@ -380,13 +380,13 @@ struct RenderingTests {
     }
 
     @Test
-    func hyperlinkOscEmittedWhenColorOn() {
+    func `hyperlink osc emitted when color on`() {
         let out = render("[x](https://example.com)", options: RenderOptions(wrap: false, hyperlinks: true, color: true))
         #expect(out.contains("\u{001B}]8;;https://example.com"))
     }
 
     @Test
-    func hyperlinkDisabledWhenColorOff() {
+    func `hyperlink disabled when color off`() {
         let out = render(
             "[x](https://example.com)",
             options: RenderOptions(wrap: false, hyperlinks: true, color: false))
@@ -395,7 +395,7 @@ struct RenderingTests {
     }
 
     @Test
-    func stylerAppliesAttributes() {
+    func `styler applies attributes`() {
         let styler = Styler(enableColor: true)
         let styled = styler.apply(
             "x",
@@ -407,14 +407,14 @@ struct RenderingTests {
     }
 
     @Test
-    func stylerReturnsPlainWhenColorOff() {
+    func `styler returns plain when color off`() {
         let styler = Styler(enableColor: false)
         let styled = styler.apply("plain", style: StyleIntent(color: "red"))
         #expect(styled == "plain")
     }
 
     @Test
-    func cliParsesTableFlags() throws {
+    func `cli parses table flags`() throws {
         let args = [
             "--table-border",
             "ascii",
@@ -435,7 +435,7 @@ struct RenderingTests {
     }
 
     @Test
-    func hyperlinkDetectionMatchesEnv() {
+    func `hyperlink detection matches env`() {
         let envTrue = ["WT_SESSION": "1"]
         #expect(hyperlinkSupported(env: envTrue, isTTY: true) == true)
         let envNoColor = ["NO_COLOR": "1"]
@@ -447,7 +447,7 @@ struct RenderingTests {
     }
 
     @Test
-    func definitionRendering() {
+    func `definition rendering`() {
         let md = "Body line.\n[1]: https://example.com \"Title\"\nNext."
         let out = render(md, options: RenderOptions(wrap: true, color: false))
         let lines = out.split(separator: "\n", omittingEmptySubsequences: false)
@@ -458,7 +458,7 @@ struct RenderingTests {
     }
 
     @Test
-    func diffBlocksGainLabelWhenUnspecified() {
+    func `diff blocks gain label when unspecified`() {
         let md = """
         ```
         diff --git a/foo b/foo
@@ -472,7 +472,7 @@ struct RenderingTests {
     }
 
     @Test
-    func codeListMergesWithAdjacentBlocks() {
+    func `code list merges with adjacent blocks`() {
         let md = """
         ```
         first
@@ -490,7 +490,7 @@ struct RenderingTests {
     }
 
     @Test
-    func snapshotDefinitionFooterMatchesMarkdansi() {
+    func `snapshot definition footer matches markdansi`() {
         let md = """
         Body line.
         [1]: https://example.com "Title"
@@ -508,7 +508,7 @@ struct RenderingTests {
     }
 
     @Test
-    func snapshotDiffBoxMatchesMarkdansi() {
+    func `snapshot diff box matches markdansi`() {
         let md = """
         ```
         --- a/foo
@@ -534,7 +534,7 @@ struct RenderingTests {
     }
 
     @Test
-    func snapshotCodeListMergeMatchesMarkdansi() {
+    func `snapshot code list merge matches markdansi`() {
         let md = """
         ```
         first
@@ -557,7 +557,7 @@ struct RenderingTests {
     }
 
     @Test
-    func snapshotSimpleTableMatchesMarkdansi() {
+    func `snapshot simple table matches markdansi`() {
         let md = """
         | h1 | h2 |
         | --- | --- |
@@ -576,7 +576,7 @@ struct RenderingTests {
     }
 
     @Test
-    func snapshotHyperlinkOnOffMatchesMarkdansi() {
+    func `snapshot hyperlink on off matches markdansi`() {
         let md = "[x](https://example.com)"
         let osc = render(md, options: RenderOptions(wrap: false, hyperlinks: true, color: true))
         let plain = render(md, options: RenderOptions(wrap: false, hyperlinks: true, color: false))

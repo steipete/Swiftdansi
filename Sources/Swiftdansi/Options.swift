@@ -3,7 +3,7 @@ import Foundation
 import Darwin
 #endif
 
-struct ResolvedOptions: Sendable {
+struct ResolvedOptions {
     var wrap: Bool
     var width: Int?
     var color: Bool
