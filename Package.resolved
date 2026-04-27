@@ -1,13 +1,13 @@
 {
-  "originHash" : "806ade8fccd437aed547f3d11244296a5b71b377e4476b60b225a834e4874101",
+  "originHash" : "8ba8c2939ef3b5a7ec323823a50f7417c57d1aa0665b1ef1548b6024d790de39",
   "pins" : [
     {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
       "state" : {
-        "revision" : "cdd0ef3755280949551dc26dee5de9ddeda89f54",
-        "version" : "1.6.2"
+        "revision" : "626b5b7b2f45e1b0b1c6f4a309296d1d21d7311b",
+        "version" : "1.7.1"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ainame/swift-displaywidth",
       "state" : {
-        "revision" : "e2bfbdf1469366483451708bca36511f4f48ddb1",
-        "version" : "0.0.3"
+        "revision" : "5493276f6c91fd09d348e6cea70d66346fc7b610",
+        "version" : "0.1.0"
       }
     },
     {
