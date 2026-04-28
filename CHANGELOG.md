@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.1 — 2026-04-28
+
+### Changed
+- Refresh SwiftPM dependency pins and package-manager metadata.
+- Apply SwiftFormat to keep the package warning-free.
+
 ## 0.2.0 — 2026-01-18
 
 ### Added
@@ -39,12 +45,3 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - Reference definition continuations no longer duplicate whitespace; newline trimming ensures merged code sections keep box borders tight.
 - Diff code blocks avoid wrapping while still respecting width constraints for other languages, preventing clipped gutters in snapshot tests.
-
-## 0.2.0 — 2026-01-18
-
-### Added
-- Demo CLI example for exercising rendering output.
-- DocC catalog plus Swift Package Index metadata.
-
-### Fixed
-- Demo CLI example formatting.
