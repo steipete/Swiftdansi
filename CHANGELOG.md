@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.2 — Unreleased
+
+### Changed
+- Bump package metadata to 0.2.2.
+
 ## 0.2.1 — 2026-04-28
 
 ### Changed
