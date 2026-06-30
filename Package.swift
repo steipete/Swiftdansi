@@ -43,6 +43,9 @@ let package = Package(
             dependencies: [
                 swiftMarkdown,
                 displayWidth,
+            ],
+            resources: [
+                .process("Swiftdansi.docc"),
             ]),
         .target(
             name: "SwiftdansiCLI",
