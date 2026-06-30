@@ -7,14 +7,14 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-1f6feb?style=flat-square" alt="License MIT"></a>
   <a href="https://www.swift.org"><img src="https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.2"></a>
-  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-15%2B_(Sequoia)-0078d7?style=flat-square&logo=apple&logoColor=white" alt="macOS 15+"></a>
-  <a href="https://www.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="iOS 18+"></a>
-  <a href="https://www.apple.com/tvos/"><img src="https://img.shields.io/badge/tvOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="tvOS 18+"></a>
-  <a href="https://www.apple.com/watchos/"><img src="https://img.shields.io/badge/watchOS-11%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="watchOS 11+"></a>
-  <a href="https://www.apple.com/visionos/"><img src="https://img.shields.io/badge/visionOS-2%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="visionOS 2+"></a>
+  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-0078d7?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"></a>
+  <a href="https://www.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-17%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="iOS 17+"></a>
+  <a href="https://www.apple.com/tvos/"><img src="https://img.shields.io/badge/tvOS-17%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="tvOS 17+"></a>
+  <a href="https://www.apple.com/watchos/"><img src="https://img.shields.io/badge/watchOS-10%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="watchOS 10+"></a>
+  <a href="https://www.apple.com/visionos/"><img src="https://img.shields.io/badge/visionOS-1%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="visionOS 1+"></a>
 </p>
 
-Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+).
+Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 14+, iOS 17+, tvOS 17+, watchOS 10+, visionOS 1+).
 
 ## Features
 - GFM blocks & inline: headings, lists/tasks, blockquotes, code (boxed/labels/gutter), tables (align/pad/dense/truncate/ellipsis), HR, strike, links/autolinks, inline code, emphasis/strong.
@@ -27,7 +27,7 @@ Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://git
 ## Install
 SwiftPM package:
 ```swift
-.package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.1.1")
+.package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.2.1")
 ```
 Targets: `Swiftdansi` (library), `swiftdansi` (CLI binary).
 
