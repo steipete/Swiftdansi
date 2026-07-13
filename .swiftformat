@@ -34,6 +34,7 @@
 --enumthreshold 0
 
 --swiftversion 6.2
+--disable wrapIfStatementBodies
 
 --stripunusedargs closure-only
 --header ignore
