@@ -30,6 +30,8 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
+node_modules/
+pnpm-lock.yaml
 
 # CocoaPods
 #

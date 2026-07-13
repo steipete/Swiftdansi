@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## 0.2.2 — Unreleased
 
 ### Changed
-- Bump package metadata to 0.2.2.
+- Bump package metadata to 0.2.2, refresh the pnpm toolchain pin, and stabilize formatting across tool updates.
 
 ## 0.2.1 — 2026-04-28
 

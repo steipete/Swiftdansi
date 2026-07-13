@@ -27,7 +27,9 @@ jobs:
           xcodebuild -version
           swift --version
       - name: Install tools
-        run: brew install swiftlint swiftformat pnpm
+        run: |
+          brew update
+          brew install swiftlint swiftformat pnpm
       - name: Lint
         run: swiftlint lint --config .swiftlint.yml
       - name: Format check
