@@ -1,0 +1,16 @@
+services:
+  devcontainer:
+    image: "swift:6.3.2-noble"
+    working_dir: ${WORKSPACE_DIR}
+    env_file:
+      - .env
+    environment:
+      PATH: /root/.swiftpm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - ${GIT_REPO}:${GIT_REPO}:rw
+      - ${WORKSPACE_DIR}:${WORKSPACE_DIR}:rw
+    command: sleep infinity

@@ -90,6 +90,18 @@ swift run SwiftdansiDemo -- ../../README.md --theme bright --width 72
 - Lint: `pnpm lint` (SwiftLint, config in `.swiftlint.yml`)
 - Format: `pnpm format` (SwiftFormat, config in `.swiftformat`)
 
+### Linux development container
+Open this repository in VS Code and select **Dev Containers: Reopen in Container** to use the
+Swift 6.3.2 Ubuntu development environment. The container mounts the workspace and Git directory
+at their host paths, so it also works with Git worktrees.
+
+Linux source compatibility is still in progress. You can verify the toolchain with:
+
+```sh
+swift --version
+swift package describe
+```
+
 ## Testing & CI
 - Tests (Swift-Testing): `swift test`
 - CI: `.github/workflows/ci.yml` runs `swift test` on macOS 15.
