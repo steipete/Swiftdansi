@@ -447,6 +447,38 @@ struct RenderingTests {
     }
 
     @Test
+    func `terminal context controls automatic options`() {
+        let terminal = TerminalContext(
+            environment: ["WT_SESSION": "1"],
+            isTTY: true,
+            width: 120)
+        let resolved = resolve(RenderOptions(), terminal: terminal)
+        #expect(resolved.width == 120)
+        #expect(resolved.color)
+        #expect(resolved.hyperlinks)
+
+        let redirected = TerminalContext(environment: [:], isTTY: false, width: nil)
+        let redirectedOptions = resolve(RenderOptions(), terminal: redirected)
+        #expect(redirectedOptions.width == 80)
+        #expect(!redirectedOptions.color)
+        #expect(!redirectedOptions.hyperlinks)
+    }
+
+    @Test
+    func `terminal width prefers ioctl and falls back to columns`() {
+        #expect(terminalWidth(environment: ["COLUMNS": "96"], detectedWidth: 120) == 120)
+        #expect(terminalWidth(environment: ["COLUMNS": "96"], detectedWidth: nil) == 96)
+        #expect(terminalWidth(environment: ["COLUMNS": "invalid"], detectedWidth: nil) == nil)
+        #expect(detectedTerminalWidth(fileDescriptor: -1) == nil)
+    }
+
+    @Test
+    func `pipe is not a tty`() {
+        let pipe = Pipe()
+        #expect(HyperlinkSupport.current(stream: pipe.fileHandleForWriting).isTTY == false)
+    }
+
+    @Test
     func `definition rendering`() {
         let md = "Body line.\n[1]: https://example.com \"Title\"\nNext."
         let out = render(md, options: RenderOptions(wrap: true, color: false))

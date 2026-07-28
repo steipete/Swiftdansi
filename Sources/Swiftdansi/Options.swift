@@ -1,7 +1,26 @@
 import Foundation
 #if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
 #endif
+
+struct TerminalContext {
+    let environment: [String: String]
+    let isTTY: Bool
+    let width: Int?
+
+    static func current(stream: FileHandle = .standardOutput) -> TerminalContext {
+        let environment = ProcessInfo.processInfo.environment
+        let fileDescriptor = stream.fileDescriptor
+        return TerminalContext(
+            environment: environment,
+            isTTY: isatty(fileDescriptor) != 0,
+            width: terminalWidth(
+                environment: environment,
+                detectedWidth: detectedTerminalWidth(fileDescriptor: fileDescriptor)))
+    }
+}
 
 struct ResolvedOptions {
     var wrap: Bool
@@ -23,13 +42,14 @@ struct ResolvedOptions {
     var codeWrap: Bool
 }
 
-func resolve(_ user: RenderOptions) -> ResolvedOptions {
+func resolve(_ user: RenderOptions, terminal: TerminalContext = .current()) -> ResolvedOptions {
     let wrap = user.wrap ?? true
-    let autoWidth = wrap ? terminalWidth() ?? 80 : nil
+    let autoWidth = wrap ? terminal.width ?? 80 : nil
     let width = user.width ?? autoWidth
-    let colorDefault = isatty(fileno(stdout)) != 0
-    let color = user.color ?? colorDefault
-    let hyperlinks = color ? (user.hyperlinks ?? hyperlinkSupported()) : false
+    let color = user.color ?? terminal.isTTY
+    let hyperlinks = color ? (user.hyperlinks ?? hyperlinkSupported(
+        env: terminal.environment,
+        isTTY: terminal.isTTY)) : false
     let baseTheme = user.customTheme ?? (user.theme.map { Themes.named($0) } ?? Themes.default)
     let listIndent = user.listIndent ?? 2
     let listMarker = user.listMarker ?? "-"
@@ -63,15 +83,27 @@ func resolve(_ user: RenderOptions) -> ResolvedOptions {
         codeWrap: codeWrap)
 }
 
-private func terminalWidth() -> Int? {
+func terminalWidth(environment: [String: String], detectedWidth: Int?) -> Int? {
+    if let detectedWidth {
+        return detectedWidth
+    }
+    if let columns = environment["COLUMNS"], let value = Int(columns) {
+        return value
+    }
+    return nil
+}
+
+func detectedTerminalWidth(fileDescriptor: Int32 = STDOUT_FILENO) -> Int? {
+    var terminalSize = winsize()
     #if canImport(Darwin)
-    var w = winsize()
-    if ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0, w.ws_col > 0 {
-        return Int(w.ws_col)
+    let result = ioctl(fileDescriptor, TIOCGWINSZ, &terminalSize)
+    #elseif canImport(Glibc)
+    let result = ioctl(fileDescriptor, UInt(TIOCGWINSZ), &terminalSize)
+    #endif
+    #if canImport(Darwin) || canImport(Glibc)
+    if result == 0, terminalSize.ws_col > 0 {
+        return Int(terminalSize.ws_col)
     }
     #endif
-    if let cols = ProcessInfo.processInfo.environment["COLUMNS"], let val = Int(cols) {
-        return val
-    }
     return nil
 }

@@ -5,11 +5,21 @@ on:
   pull_request:
 
 jobs:
-  test-macos:
-    runs-on: macos-latest
+  test:
+    name: Test (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+          - name: Ubuntu
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - name: Select Xcode
+        if: matrix.name == 'macOS'
         run: |
           set -euo pipefail
           for candidate in \
@@ -27,12 +37,42 @@ jobs:
           xcodebuild -version
           swift --version
       - name: Install tools
+        if: matrix.name == 'macOS'
         run: |
           brew update
           brew install swiftlint swiftformat pnpm
       - name: Lint
+        if: matrix.name == 'macOS'
         run: swiftlint lint --config .swiftlint.yml
       - name: Format check
+        if: matrix.name == 'macOS'
         run: swiftformat . --lint --config .swiftformat
+      - name: Swift build
+        if: matrix.name == 'macOS'
+        run: swift build
       - name: Swift test
+        if: matrix.name == 'macOS'
         run: swift test
+      - name: Initialize Linux development container
+        if: matrix.name == 'Ubuntu'
+        run: .devcontainer/init.sh
+      - name: Linux build
+        if: matrix.name == 'Ubuntu'
+        run: docker compose --env-file .devcontainer/.env -f .devcontainer/docker-compose.yaml run --rm devcontainer swift build
+      - name: Linux test
+        if: matrix.name == 'Ubuntu'
+        run: docker compose --env-file .devcontainer/.env -f .devcontainer/docker-compose.yaml run --rm devcontainer swift test
+      - name: Linux CLI smoke test
+        if: matrix.name == 'Ubuntu'
+        run: |
+          docker compose --env-file .devcontainer/.env -f .devcontainer/docker-compose.yaml run --rm devcontainer bash -lc '
+            set -euo pipefail
+            binary=.build/debug/swiftdansi
+            printf "# stdin\n" | "$binary" --no-color > /tmp/swiftdansi-stdout.txt
+            grep -q "stdin" /tmp/swiftdansi-stdout.txt
+            printf "# file\n" > /tmp/swiftdansi-input.md
+            "$binary" --in /tmp/swiftdansi-input.md --out /tmp/swiftdansi-output.txt --no-color
+            grep -q "file" /tmp/swiftdansi-output.txt
+            seq 1 10000 | sed "s/.*/# heading/" > /tmp/swiftdansi-large.md
+            "$binary" --in /tmp/swiftdansi-large.md --no-color | head -n 1 > /dev/null
+          '

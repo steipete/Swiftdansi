@@ -12,9 +12,10 @@
   <a href="https://www.apple.com/tvos/"><img src="https://img.shields.io/badge/tvOS-17%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="tvOS 17+"></a>
   <a href="https://www.apple.com/watchos/"><img src="https://img.shields.io/badge/watchOS-10%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="watchOS 10+"></a>
   <a href="https://www.apple.com/visionos/"><img src="https://img.shields.io/badge/visionOS-1%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="visionOS 1+"></a>
+  <a href="https://www.swift.org/install/linux/"><img src="https://img.shields.io/badge/Ubuntu-24.04-E95420?style=flat-square&logo=ubuntu&logoColor=white" alt="Ubuntu 24.04"></a>
 </p>
 
-Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, Apple platforms only (macOS 14+, iOS 17+, tvOS 17+, watchOS 10+, visionOS 1+).
+Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, and available on macOS 14+, iOS 17+, tvOS 17+, watchOS 10+, visionOS 1+, and Ubuntu 24.04.
 
 ## Features
 - GFM blocks & inline: headings, lists/tasks, blockquotes, code (boxed/labels/gutter), tables (align/pad/dense/truncate/ellipsis), HR, strike, links/autolinks, inline code, emphasis/strong.
@@ -75,7 +76,7 @@ swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-l
 - Hyperlinks: auto-detect when color on; override with `--force-links` or `--no-links`.
 - Handles SIGPIPE for pipelines.
 
-## Example CLI (macOS)
+## Example CLI (macOS and Linux)
 Tiny demo CLI that uses the Swiftdansi library (Swift 6.2):
 
 ```
@@ -95,16 +96,17 @@ Open this repository in VS Code and select **Dev Containers: Reopen in Container
 Swift 6.3.2 Ubuntu development environment. The container mounts the workspace and Git directory
 at their host paths, so it also works with Git worktrees.
 
-Linux source compatibility is still in progress. You can verify the toolchain with:
+Build and test the package inside the container with:
 
 ```sh
 swift --version
-swift package describe
+swift build
+swift test
 ```
 
 ## Testing & CI
 - Tests (Swift-Testing): `swift test`
-- CI: `.github/workflows/ci.yml` runs `swift test` on macOS 15.
+- CI: `.github/workflows/ci.yml` builds and tests on macOS and Ubuntu 24.04.
 
 ## License
 MIT
