@@ -68,10 +68,11 @@ jobs:
           docker compose --env-file .devcontainer/.env -f .devcontainer/docker-compose.yaml run --rm devcontainer bash -lc '
             set -euo pipefail
             binary=.build/debug/swiftdansi
-            printf "# stdin\n" | "$binary" --no-color > /tmp/swiftdansi-stdout.txt
+            printf "# stdin\n" | "$binary" --no-color | tee /tmp/swiftdansi-stdout.txt
             grep -q "stdin" /tmp/swiftdansi-stdout.txt
             printf "# file\n" > /tmp/swiftdansi-input.md
             "$binary" --in /tmp/swiftdansi-input.md --out /tmp/swiftdansi-output.txt --no-color
+            cat /tmp/swiftdansi-output.txt
             grep -q "file" /tmp/swiftdansi-output.txt
             seq 1 10000 | sed "s/.*/# heading/" > /tmp/swiftdansi-large.md
             "$binary" --in /tmp/swiftdansi-large.md --no-color | head -n 1 > /dev/null

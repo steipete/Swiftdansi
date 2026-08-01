@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## 0.2.3 — Unreleased
 
+### Added
+- Add Ubuntu 24.04 support for the library and CLI, with Linux CI and development-container coverage. Thanks @nnabeyang.
+
 ## 0.2.2 — 2026-07-15
 
 ### Changed
