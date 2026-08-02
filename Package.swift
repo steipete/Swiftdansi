@@ -33,9 +33,9 @@ let package = Package(
             targets: ["SwiftdansiCLIMain"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-markdown", from: "0.8.0"),
-        .package(url: "https://github.com/ainame/swift-displaywidth", from: "0.1.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.2"),
+        .package(url: "https://github.com/apple/swift-markdown", from: "0.7.0"),
+        .package(url: "https://github.com/ainame/swift-displaywidth", from: "0.0.3"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.4.0"),
     ],
     targets: [
         .target(
