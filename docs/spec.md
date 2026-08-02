@@ -39,7 +39,7 @@ Goal: Swift 6.2 Markdown → ANSI renderer and CLI, mirroring Markdansi behavior
 - Thematic breaks: 40-character em-dash line, clamped by width when wrapping.
 
 ## Platforms & Toolchain
-- Platforms: macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+.
+- Platforms: macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+, and Ubuntu 24.04.
 - Swift 6.2 language mode. Build/test with SwiftPM + Swift Testing.
 
 ## Testing

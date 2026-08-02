@@ -1,0 +1,30 @@
+{
+    "name": "Swiftdansi Linux Development",
+    "dockerComposeFile": "docker-compose.yaml",
+    "service": "devcontainer",
+    "workspaceFolder": "${localWorkspaceFolder}",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": "false",
+            "username": "root",
+            "upgradePackages": "false"
+        },
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "os-provided",
+            "ppa": "false"
+        }
+    },
+    "initializeCommand": ".devcontainer/init.sh",
+    "postStartCommand": "cd ${WORKSPACE_DIR}",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "lldb.library": "/usr/lib/liblldb.so"
+            },
+            "extensions": [
+                "swiftlang.swift-vscode"
+            ]
+        }
+    },
+    "remoteUser": "root"
+}

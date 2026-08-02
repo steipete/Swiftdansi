@@ -1,7 +1,11 @@
 import ArgumentParser
-import Darwin
 import Foundation
 import Swiftdansi
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 public struct SwiftdansiCommand: ParsableCommand {
     public static let configuration = CommandConfiguration(
@@ -108,7 +112,24 @@ public struct SwiftdansiCommand: ParsableCommand {
         if let outPath = out {
             try output.write(to: URL(fileURLWithPath: outPath), atomically: true, encoding: .utf8)
         } else if let data = output.data(using: .utf8) {
-            FileHandle.standardOutput.write(data)
+            do {
+                try FileHandle.standardOutput.write(contentsOf: data)
+            } catch {
+                guard isBrokenPipe(error) else {
+                    throw error
+                }
+            }
         }
     }
+}
+
+private func isBrokenPipe(_ error: Error) -> Bool {
+    let error = error as NSError
+    if error.domain == NSPOSIXErrorDomain, error.code == Int(EPIPE) {
+        return true
+    }
+    guard let underlyingError = error.userInfo[NSUnderlyingErrorKey] as? NSError else {
+        return false
+    }
+    return underlyingError.domain == NSPOSIXErrorDomain && underlyingError.code == Int(EPIPE)
 }
