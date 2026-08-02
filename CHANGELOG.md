@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## 0.2.3 — Unreleased
 
+### Changed
+- Raise SwiftPM dependency baselines to their current stable releases and refresh the pnpm toolchain pin.
+
 ## 0.2.2 — 2026-07-15
 
 ### Changed
