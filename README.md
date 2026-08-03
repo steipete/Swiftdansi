@@ -1,115 +1,87 @@
-# 🎨 Swiftdansi: Wraps, colors, links—no baggage.
+# Swiftdansi 🎨 — Give Markdown a terminal wardrobe.
+
+[![CI](https://img.shields.io/github/actions/workflow/status/steipete/Swiftdansi/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/steipete/Swiftdansi/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/steipete/Swiftdansi?style=flat-square)](https://github.com/steipete/Swiftdansi/releases/latest)
+[![Swift 6.2](https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://www.swift.org)
+[![Platforms](https://img.shields.io/badge/platforms-Apple%20%7C%20Linux-555?style=flat-square)](#platforms)
+[![License](https://img.shields.io/github/license/steipete/Swiftdansi?style=flat-square)](LICENSE)
 
 <p align="center">
   <img src="./swiftdansi.png" alt="Swiftdansi README header" width="1100">
 </p>
 
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-1f6feb?style=flat-square" alt="License MIT"></a>
-  <a href="https://www.swift.org"><img src="https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.2"></a>
-  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-0078d7?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"></a>
-  <a href="https://www.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-17%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="iOS 17+"></a>
-  <a href="https://www.apple.com/tvos/"><img src="https://img.shields.io/badge/tvOS-17%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="tvOS 17+"></a>
-  <a href="https://www.apple.com/watchos/"><img src="https://img.shields.io/badge/watchOS-10%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="watchOS 10+"></a>
-  <a href="https://www.apple.com/visionos/"><img src="https://img.shields.io/badge/visionOS-1%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="visionOS 1+"></a>
-  <a href="https://www.swift.org/install/linux/"><img src="https://img.shields.io/badge/Ubuntu-24.04-E95420?style=flat-square&logo=ubuntu&logoColor=white" alt="Ubuntu 24.04"></a>
-</p>
-
-Swift 6.2 Markdown → ANSI renderer and CLI, modeled on [Markdansi](https://github.com/steipete/Markdansi) but built with `swift-markdown` + `swift-displaywidth`. Fast, zero runtime deps, and available on macOS 14+, iOS 17+, tvOS 17+, watchOS 10+, visionOS 1+, and Ubuntu 24.04.
-
-## Features
-- GFM blocks & inline: headings, lists/tasks, blockquotes, code (boxed/labels/gutter), tables (align/pad/dense/truncate/ellipsis), HR, strike, links/autolinks, inline code, emphasis/strong.
-- OSC‑8 hyperlinks with auto-detect + force/disable flags; plain suffix fallback when color off.
-- Unicode-aware width/wrapping (emoji, CJK) using swift-displaywidth.
-- Themes: default, dim, bright, solarized, monochrome, contrast; custom theme support.
-- Highlighter hook: inject your own ANSI coloring for fenced code.
-- CLI parity with Markdansi flags, plus `--force-links`.
+Swiftdansi is a Swift package and CLI that renders Markdown as ANSI-styled terminal output. It is for Swift apps and command-line tools that need wrapping, tables, code blocks, themes, or OSC 8 links.
 
 ## Install
-SwiftPM package:
-```swift
-.package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.2.1")
-```
-Targets: `Swiftdansi` (library), `swiftdansi` (CLI binary).
 
-## Library usage
+Add Swiftdansi to your Swift package dependencies:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.3.0"),
+]
+```
+
+Then add the library product to your target:
+
+```swift
+dependencies: [
+    .product(name: "Swiftdansi", package: "Swiftdansi"),
+]
+```
+
+## Quick start
+
 ```swift
 import Swiftdansi
 
-// One-off render
-let ansi = render("# Hello **world**", options: RenderOptions(width: 60))
-
-// Reusable renderer
-let renderNoWrap = createRenderer(options: RenderOptions(wrap: false))
-let out = renderNoWrap("A very long line without wrapping")
-
-// Plain text (no ANSI/OSC)
-let plain = strip("link to [x](https://example.com)")
-
-// Custom theme & highlighter
-let custom = createRenderer(options: RenderOptions(
-    theme: .bright,
-    highlighter: { code, _ in code.uppercased() }
-))
+let markdown = "# Hello\n\nRender **Markdown** in your terminal."
+let output = render(markdown, options: RenderOptions(width: 48))
+print(output)
 ```
 
-### Options (RenderOptions)
-- `wrap` (default `true`), `width` (TTY cols or 80 when wrapping).
-- `color` (default TTY), `hyperlinks` (auto when color on), `force-links` / `no-links` via CLI.
-- `theme`: `.default | .dim | .bright | .solarized | .monochrome | .contrast` or `customTheme`.
-- Lists: `listIndent` (default 2), `listMarker` (default `-`, set to `"•"` for dotted lists like Markdansi).
-- Quotes: `quotePrefix` (default `│ `).
-- Tables: `tableBorder unicode|ascii|none`, `tablePadding`, `tableDense`, `tableTruncate`, `tableEllipsis`.
-- Code: `codeBox`, `codeGutter`, `codeWrap`.
-- `highlighter` `(code, lang?) -> String`.
+`render` detects terminal color, hyperlink support, and width unless you override them. Use `createRenderer(options:)` to reuse resolved options, or `strip(_:options:)` for plain text without ANSI or OSC sequences.
+
+## Rendering controls
+
+`RenderOptions` groups the renderer's behavior without changing the input Markdown:
+
+| Area | Controls |
+| --- | --- |
+| Layout | wrapping, output width, list indentation, and quote prefixes |
+| Tables | border style, padding, density, truncation, and ellipsis |
+| Code | boxes, line-number gutters, wrapping, and a custom highlighter |
+| Appearance | six built-in themes, custom themes, color, and OSC 8 hyperlinks |
+
+See the [behavior and option reference](docs/spec.md) for the full rendering contract and the [DocC catalog](Sources/Swiftdansi/Swiftdansi.docc/Swiftdansi.md) for the public API.
 
 ## CLI
-```
-swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-links] [--force-links]
-          [--theme default|dim|bright|solarized|monochrome|contrast]
-          [--list-indent N] [--quote-prefix STR]
-          [--table-border unicode|ascii|none] [--table-padding N] [--table-dense]
-          [--table-truncate[=true|false]] [--table-ellipsis STR]
-          [--code-wrap[=true|false]] [--code-box[=true|false]] [--code-gutter]
-```
-- Input: stdin if `--in` missing or `-`; output: stdout unless `--out`.
-- Hyperlinks: auto-detect when color on; override with `--force-links` or `--no-links`.
-- Handles SIGPIPE for pipelines.
 
-## Example CLI (macOS and Linux)
-Tiny demo CLI that uses the Swiftdansi library (Swift 6.2):
-
-```
-cd Examples/SwiftdansiCLI
-swift run SwiftdansiDemo --
-swift run SwiftdansiDemo -- ../../README.md --theme bright --width 72
-```
-
-## Development
-- Build: `swift build` (or `pnpm build`)
-- Test: `swift test` (or `pnpm test`)
-- Lint: `pnpm lint` (SwiftLint, config in `.swiftlint.yml`)
-- Format: `pnpm format` (SwiftFormat, config in `.swiftformat`)
-
-### Linux development container
-Open this repository in VS Code and select **Dev Containers: Reopen in Container** to use the
-Swift 6.3.2 Ubuntu development environment. The container mounts the workspace and Git directory
-at their host paths, so it also works with Git worktrees.
-
-Build and test the package inside the container with:
+The package includes the `swiftdansi` executable. From a source checkout:
 
 ```sh
-swift --version
+printf '# Hello **terminal**\n' | swift run swiftdansi --no-color
+```
+
+Input defaults to standard input and output defaults to standard output. Use `--in` and `--out` for files, and run `swift run swiftdansi --help` for the complete flag list. The [demo package](Examples/SwiftdansiCLI) shows a separate executable consuming the library.
+
+## Platforms
+
+The package requires Swift 6.2. `Package.swift` declares macOS 14, iOS 17, tvOS 17, watchOS 10, and visionOS 1; CI also builds and tests the library and CLI on Linux.
+
+## Credits
+
+Swiftdansi is a Swift port of [Markdansi](https://github.com/steipete/Markdansi), the original TypeScript implementation.
+
+## Development
+
+```sh
 swift build
 swift test
 ```
 
-## Testing & CI
-- Tests (Swift-Testing): `swift test`
-- CI: `.github/workflows/ci.yml` builds and tests on macOS and Ubuntu 24.04.
+The repository also includes a VS Code development container with a pinned Swift toolchain for Linux development.
 
 ## License
-MIT
 
-## Inspiration
-Built as a Swift port of [Markdansi](https://github.com/steipete/Markdansi); see that project for the original TypeScript implementation and behavior notes.
+[MIT](LICENSE)
