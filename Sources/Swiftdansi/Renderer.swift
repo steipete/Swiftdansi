@@ -324,27 +324,34 @@ private func renderTable(_ table: Table, ctx: RenderContext) -> [String] {
     let colCount = cells.map(\.count).max() ?? 0
     var widths = Array(repeating: 1, count: colCount)
     let pad = ctx.options.tablePadding
-    let minContent = max(1, ctx.options.tableEllipsis.count + 1)
+    let minContent = max(1, visibleWidth(ctx.options.tableEllipsis) + 1)
     let minColWidth = max(1, pad * 2 + minContent)
 
     for row in cells {
         for (idx, cell) in row.enumerated() {
-            widths[idx] = max(widths[idx], min(maxTableColWidth, visibleWidth(cell)))
-        }
-    }
-
-    let totalWidth = widths.reduce(0, +) + 3 * colCount + 1
-    if ctx.options.wrap, let target = ctx.options.width, totalWidth > target {
-        var over = totalWidth - target
-        while over > 0 {
-            if let i = widths.firstIndex(of: widths.max() ?? 0), widths[i] > minColWidth {
-                widths[i] -= 1
-                over -= 1
-            } else { break }
+            let paddedWidth = visibleWidth(cell) + pad * 2
+            widths[idx] = max(widths[idx], min(maxTableColWidth, paddedWidth))
         }
     }
     for i in widths.indices where widths[i] < minColWidth {
         widths[i] = minColWidth
+    }
+
+    let separatorWidth = switch ctx.options.tableBorder {
+    case .none: max(0, (colCount - 1) * 3)
+    case .ascii, .unicode: colCount + 1
+    }
+    let totalWidth = widths.reduce(0, +) + separatorWidth
+    if ctx.options.wrap, let target = ctx.options.width, totalWidth > target {
+        var over = totalWidth - target
+        while over > 0 {
+            guard let i = widths.indices
+                .filter({ widths[$0] > minColWidth })
+                .max(by: { widths[$0] < widths[$1] })
+            else { break }
+            widths[i] -= 1
+            over -= 1
+        }
     }
 
     func renderRow(_ row: [String], header: Bool) -> [[String]] {
@@ -459,14 +466,17 @@ private func renderLink(_ link: Link, ctx: RenderContext) -> String {
 private func wrapCodeLine(_ text: String, width: Int?) -> [String] {
     guard let width, width > 0 else { return [text] }
     var current = ""
+    var currentWidth = 0
     var out: [String] = []
     for ch in text {
         let chWidth = visibleWidth(String(ch))
-        if visibleWidth(current) + chWidth > width {
+        if currentWidth + chWidth > width {
             out.append(current)
             current = String(ch)
+            currentWidth = chWidth
         } else {
             current.append(ch)
+            currentWidth += chWidth
         }
     }
     if !current.isEmpty { out.append(current) }
@@ -475,14 +485,108 @@ private func wrapCodeLine(_ text: String, width: Int?) -> [String] {
 
 private func truncateCell(_ text: String, width: Int, ellipsis: String) -> String {
     if visibleWidth(text) <= width { return text }
-    if width <= ellipsis.count { return String(ellipsis.prefix(width)) }
-    let target = width - ellipsis.count
+    let ellipsisWidth = visibleWidth(ellipsis)
+    if width <= ellipsisWidth { return sliceCellContent(ellipsis, width: width) }
+    return sliceCellContent(text, width: width - ellipsisWidth) + ellipsis
+}
+
+private func sliceCellContent(_ text: String, width: Int) -> String {
     var result = ""
-    for ch in text {
-        if visibleWidth(result + String(ch)) > target { break }
-        result.append(ch)
+    var resultWidth = 0
+    var cursor = text.startIndex
+    var hasActiveSGR = false
+    var hasActiveHyperlink = false
+
+    while cursor < text.endIndex {
+        if text[cursor] == "\u{001B}", let sequenceEnd = ansiSequenceEnd(in: text, from: cursor) {
+            let sequence = text[cursor..<sequenceEnd]
+            result.append(contentsOf: sequence)
+            updateANSIState(
+                sequence,
+                hasActiveSGR: &hasActiveSGR,
+                hasActiveHyperlink: &hasActiveHyperlink)
+            cursor = sequenceEnd
+            continue
+        }
+
+        let next = text.index(after: cursor)
+        let grapheme = String(text[cursor..<next])
+        let graphemeWidth = visibleWidth(grapheme)
+        guard resultWidth + graphemeWidth <= max(0, width) else { break }
+        result.append(contentsOf: grapheme)
+        resultWidth += graphemeWidth
+        cursor = next
     }
-    return result + ellipsis
+
+    guard cursor < text.endIndex else { return result }
+    if hasActiveHyperlink {
+        result.append("\u{001B}]8;;\u{0007}")
+    }
+    if hasActiveSGR {
+        result.append("\u{001B}[0m")
+    }
+    return result
+}
+
+private func ansiSequenceEnd(in text: String, from start: String.Index) -> String.Index? {
+    let introducer = text.index(after: start)
+    guard introducer < text.endIndex else { return nil }
+
+    switch text[introducer] {
+    case "[":
+        var cursor = text.index(after: introducer)
+        while cursor < text.endIndex {
+            let character = text[cursor]
+            let next = text.index(after: cursor)
+            if character.unicodeScalars.count == 1,
+               let value = character.unicodeScalars.first?.value,
+               (0x40...0x7E).contains(value)
+            {
+                return next
+            }
+            cursor = next
+        }
+    case "]":
+        var cursor = text.index(after: introducer)
+        while cursor < text.endIndex {
+            let character = text[cursor]
+            let next = text.index(after: cursor)
+            if character == "\u{0007}" {
+                return next
+            }
+            if character == "\u{001B}", next < text.endIndex, text[next] == "\\" {
+                return text.index(after: next)
+            }
+            cursor = next
+        }
+    default:
+        return text.index(after: introducer)
+    }
+    return nil
+}
+
+private func updateANSIState(
+    _ sequence: Substring,
+    hasActiveSGR: inout Bool,
+    hasActiveHyperlink: inout Bool)
+{
+    if sequence.hasPrefix("\u{001B}["), sequence.hasSuffix("m") {
+        let parameters = sequence.dropFirst(2).dropLast()
+        for parameter in parameters.split(separator: ";", omittingEmptySubsequences: false) {
+            hasActiveSGR = parameter != "0" && !parameter.isEmpty
+        }
+        return
+    }
+
+    guard sequence.hasPrefix("\u{001B}]8;") else { return }
+    var payload = sequence.dropFirst(4)
+    if payload.hasSuffix("\u{0007}") {
+        payload = payload.dropLast()
+    } else if payload.hasSuffix("\u{001B}\\") {
+        payload = payload.dropLast(2)
+    }
+    guard let separator = payload.firstIndex(of: ";") else { return }
+    hasActiveHyperlink = !payload[payload.index(after: separator)...].isEmpty
 }
 
 private func padCell(_ text: String, width: Int, align: Table.ColumnAlignment?, padding: Int) -> String {

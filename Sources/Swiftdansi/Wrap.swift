@@ -64,7 +64,7 @@ public func wrapText(_ text: String, width: Int, wrap: Bool) -> [String] {
             continue
         }
         current += token
-        currentWidth = visibleWidth(current)
+        currentWidth += w
     }
     if !current.isEmpty { lines.append(trimEndSpaces(current)) }
     if lines.isEmpty { lines.append("") }

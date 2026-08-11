@@ -223,6 +223,72 @@ struct RenderingTests {
     }
 
     @Test
+    func `table truncation balances inline ANSI styling`() {
+        let md = """
+        | Cell |
+        | --- |
+        | **averylongstyledvalue** |
+        """
+        let out = render(
+            md,
+            options: RenderOptions(wrap: true, width: 14, color: true, tablePadding: 0, tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("avery") }).map(String.init)
+
+        #expect(body?.contains("\u{001B}[1m") == true)
+        #expect(body?.contains("\u{001B}[0m") == true)
+        #expect(body?.contains("…") == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 14 })
+    }
+
+    @Test
+    func `table truncation balances OSC hyperlinks`() {
+        let url = "https://example.com/nested"
+        let md = """
+        | Link |
+        | --- |
+        | [averylonglinklabelthatexceeds](\(url)) |
+        """
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 24,
+                hyperlinks: true,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true))
+        let open = "\u{001B}]8;;\(url)\u{0007}"
+        let close = "\u{001B}]8;;\u{0007}"
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("avery") }).map(String.init)
+
+        #expect(body?.components(separatedBy: open).count == 2)
+        #expect(body?.components(separatedBy: close).count == 2)
+        #expect(body?.contains("…") == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
+    }
+
+    @Test
+    func `table truncation measures wide ellipsis by display width`() {
+        let md = """
+        | ID | Text |
+        | --- | --- |
+        | 1 | 東京大阪京都横浜名古屋 |
+        """
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 20,
+                color: false,
+                tablePadding: 1,
+                tableTruncate: true,
+                tableEllipsis: "漢字"))
+
+        #expect(out.contains("漢字"))
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 20 })
+    }
+
+    @Test
     func `table padding dense combination`() {
         let md = """
         | a | b |
