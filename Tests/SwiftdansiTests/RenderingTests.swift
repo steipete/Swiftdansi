@@ -277,6 +277,10 @@ struct RenderingTests {
         #expect(visibleWidth(linked) == visibleWidth("visible label"))
         #expect(stripANSI("\u{001B}[2Kvalue\u{001B}[1~") == "value")
         #expect(stripANSI("\u{009B}31mred\u{009B}0m") == "red")
+
+        let c1Open = "\u{009D}8;;https://example.com\u{009C}"
+        let c1Close = "\u{009D}8;;\u{009C}"
+        #expect(stripANSI("\(c1Open)C1 label\(c1Close)") == "C1 label")
     }
 
     @Test
@@ -303,6 +307,28 @@ struct RenderingTests {
         let plain = strip(md, options: RenderOptions(wrap: true, width: 24, tablePadding: 0))
         #expect(plain.contains("avery"))
         #expect(!plain.contains("\u{001B}"))
+    }
+
+    @Test
+    func `table truncation balances C1 OSC hyperlinks`() {
+        let open = "\u{009D}8;;https://example.com\u{009C}"
+        let close = "\u{009D}8;;\u{009C}"
+        let md = "| Link |\n|---|\n| \(open)averylonglinklabelthatexceeds\(close) |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 24,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("avery") }).map(String.init)
+
+        #expect(body?.components(separatedBy: open).count == 2)
+        #expect(body?.components(separatedBy: close).count == 2)
+        #expect(body?.contains("…") == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
     }
 
     @Test

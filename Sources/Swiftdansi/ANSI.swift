@@ -1,6 +1,7 @@
 enum ANSIOSCTerminator {
     case bell
     case stringTerminator
+    case c1StringTerminator
 
     var hyperlinkClose: String {
         switch self {
@@ -8,6 +9,8 @@ enum ANSIOSCTerminator {
             "\u{001B}]8;;\u{0007}"
         case .stringTerminator:
             "\u{001B}]8;;\u{001B}\\"
+        case .c1StringTerminator:
+            "\u{009D}8;;\u{009C}"
         }
     }
 }
@@ -41,6 +44,9 @@ func ansiOSCTerminator(in sequence: Substring) -> ANSIOSCTerminator? {
     }
     if sequence.hasSuffix("\u{001B}\\") {
         return .stringTerminator
+    }
+    if sequence.hasSuffix("\u{009C}") {
+        return .c1StringTerminator
     }
     return nil
 }
@@ -86,6 +92,9 @@ private func stringControlSequenceEnd(in text: String, from start: String.Index)
         let character = text[cursor]
         let next = text.index(after: cursor)
         if character == "\u{0007}" {
+            return next
+        }
+        if character == "\u{009C}" {
             return next
         }
         if character == "\u{001B}", next < text.endIndex, text[next] == "\\" {
