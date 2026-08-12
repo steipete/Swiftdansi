@@ -268,6 +268,93 @@ struct RenderingTests {
     }
 
     @Test
+    func `ANSI scanner preserves content around ST terminated hyperlinks`() {
+        let open = "\u{001B}]8;;https://example.com\u{001B}\\"
+        let close = "\u{001B}]8;;\u{001B}\\"
+        let linked = "\(open)visible label\(close)"
+
+        #expect(stripANSI(linked) == "visible label")
+        #expect(visibleWidth(linked) == visibleWidth("visible label"))
+        #expect(stripANSI("\u{001B}[2Kvalue\u{001B}[1~") == "value")
+        #expect(stripANSI("\u{009B}31mred\u{009B}0m") == "red")
+
+        let c1Open = "\u{009D}8;;https://example.com\u{009C}"
+        let c1Close = "\u{009D}8;;\u{009C}"
+        #expect(stripANSI("\(c1Open)C1 label\(c1Close)") == "C1 label")
+    }
+
+    @Test
+    func `table truncation balances ST terminated OSC hyperlinks`() {
+        let open = "\u{001B}]8;;https://example.com\u{001B}\\"
+        let close = "\u{001B}]8;;\u{001B}\\"
+        let md = "| Link |\n|---|\n| \(open)averylonglinklabelthatexceeds\(close) |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 24,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("avery") }).map(String.init)
+
+        #expect(body?.components(separatedBy: open).count == 2)
+        #expect(body?.components(separatedBy: close).count == 2)
+        #expect(body?.contains("…") == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
+
+        let plain = strip(md, options: RenderOptions(wrap: true, width: 24, tablePadding: 0))
+        #expect(plain.contains("avery"))
+        #expect(!plain.contains("\u{001B}"))
+    }
+
+    @Test
+    func `table truncation balances C1 OSC hyperlinks`() {
+        let open = "\u{009D}8;;https://example.com\u{009C}"
+        let close = "\u{009D}8;;\u{009C}"
+        let md = "| Link |\n|---|\n| \(open)averylonglinklabelthatexceeds\(close) |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 24,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("avery") }).map(String.init)
+
+        #expect(body?.components(separatedBy: open).count == 2)
+        #expect(body?.components(separatedBy: close).count == 2)
+        #expect(body?.contains("…") == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
+    }
+
+    @Test
+    func `table truncation does not duplicate a completed C1 OSC close`() {
+        let open = "\u{009D}8;;https://example.com\u{009C}"
+        let close = "\u{009D}8;;\u{009C}"
+        let md = "| Link |\n|---|\n| \(open)linked\(close) trailingcontentthatexceeds |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 24,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("linked") })
+            .map(String.init)
+
+        #expect(body?.components(separatedBy: open).count == 2)
+        #expect(body?.components(separatedBy: close).count == 2)
+        #expect(body?.contains("…") == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
+    }
+
+    @Test
     func `table truncation measures wide ellipsis by display width`() {
         let md = """
         | ID | Text |
@@ -286,6 +373,29 @@ struct RenderingTests {
 
         #expect(out.contains("漢字"))
         #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 20 })
+    }
+
+    @Test
+    func `table truncation preserves Unicode grapheme boundaries`() {
+        let cases = [
+            ("漢字漢字漢字漢字漢字漢字漢字漢字", 12),
+            (String(repeating: "カﾞ", count: 8), 10),
+            (String(repeating: "🇺🇸", count: 8) + " done", 12),
+        ]
+
+        for (value, width) in cases {
+            let md = "| Value |\n|---|\n| \(value) |\n"
+            let out = strip(
+                md,
+                options: RenderOptions(wrap: true, width: width, tablePadding: 0, tableTruncate: true))
+            #expect(out.contains("…"))
+            #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= width })
+            let beforeEllipsis = out.split(separator: "…").first.map(String.init) ?? ""
+            let regionalIndicators = beforeEllipsis.unicodeScalars.count(where: { scalar in
+                (0x1F1E6...0x1F1FF).contains(scalar.value)
+            })
+            #expect(regionalIndicators.isMultiple(of: 2))
+        }
     }
 
     @Test
@@ -470,6 +580,19 @@ struct RenderingTests {
         #expect(styled.contains("\u{001B}[44m"))
         #expect(styled.contains("\u{001B}[1m"))
         #expect(styled.contains("\u{001B}[9m"))
+    }
+
+    @Test
+    func `styler shares exact foreground and background color parsing`() {
+        let styler = Styler(enableColor: true)
+        let named = styler.apply("x", style: StyleIntent(color: "gray", bgColor: "gray"))
+        let hex = styler.apply("x", style: StyleIntent(color: "#2aa198", bgColor: "#2aa198"))
+
+        #expect(named.contains("\u{001B}[90m"))
+        #expect(named.contains("\u{001B}[100m"))
+        #expect(hex.contains("\u{001B}[38;2;42;161;152m"))
+        #expect(hex.contains("\u{001B}[48;2;42;161;152m"))
+        #expect(styler.apply("x", style: StyleIntent(color: "#zzzzzz")) == "x")
     }
 
     @Test

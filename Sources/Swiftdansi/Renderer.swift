@@ -495,16 +495,16 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
     var resultWidth = 0
     var cursor = text.startIndex
     var hasActiveSGR = false
-    var hasActiveHyperlink = false
+    var activeHyperlinkTerminator: ANSIOSCTerminator?
 
     while cursor < text.endIndex {
-        if text[cursor] == "\u{001B}", let sequenceEnd = ansiSequenceEnd(in: text, from: cursor) {
+        if let sequenceEnd = ansiSequenceEnd(in: text, from: cursor) {
             let sequence = text[cursor..<sequenceEnd]
             result.append(contentsOf: sequence)
             updateANSIState(
                 sequence,
                 hasActiveSGR: &hasActiveSGR,
-                hasActiveHyperlink: &hasActiveHyperlink)
+                activeHyperlinkTerminator: &activeHyperlinkTerminator)
             cursor = sequenceEnd
             continue
         }
@@ -519,79 +519,59 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
     }
 
     guard cursor < text.endIndex else { return result }
-    if hasActiveHyperlink {
-        result.append("\u{001B}]8;;\u{0007}")
-    }
     if hasActiveSGR {
         result.append("\u{001B}[0m")
     }
-    return result
-}
-
-private func ansiSequenceEnd(in text: String, from start: String.Index) -> String.Index? {
-    let introducer = text.index(after: start)
-    guard introducer < text.endIndex else { return nil }
-
-    switch text[introducer] {
-    case "[":
-        var cursor = text.index(after: introducer)
-        while cursor < text.endIndex {
-            let character = text[cursor]
-            let next = text.index(after: cursor)
-            if character.unicodeScalars.count == 1,
-               let value = character.unicodeScalars.first?.value,
-               (0x40...0x7E).contains(value)
-            {
-                return next
-            }
-            cursor = next
-        }
-    case "]":
-        var cursor = text.index(after: introducer)
-        while cursor < text.endIndex {
-            let character = text[cursor]
-            let next = text.index(after: cursor)
-            if character == "\u{0007}" {
-                return next
-            }
-            if character == "\u{001B}", next < text.endIndex, text[next] == "\\" {
-                return text.index(after: next)
-            }
-            cursor = next
-        }
-    default:
-        return text.index(after: introducer)
+    if let activeHyperlinkTerminator {
+        result.append(activeHyperlinkTerminator.hyperlinkClose)
     }
-    return nil
+    return result
 }
 
 private func updateANSIState(
     _ sequence: Substring,
     hasActiveSGR: inout Bool,
-    hasActiveHyperlink: inout Bool)
+    activeHyperlinkTerminator: inout ANSIOSCTerminator?)
 {
-    if sequence.hasPrefix("\u{001B}["), sequence.hasSuffix("m") {
-        let parameters = sequence.dropFirst(2).dropLast()
+    let sgrPrefixLength = if sequence.hasPrefix("\u{001B}[") {
+        2
+    } else if sequence.hasPrefix("\u{009B}") {
+        1
+    } else {
+        0
+    }
+    if sgrPrefixLength > 0, sequence.hasSuffix("m") {
+        let parameters = sequence.dropFirst(sgrPrefixLength).dropLast()
         for parameter in parameters.split(separator: ";", omittingEmptySubsequences: false) {
             hasActiveSGR = parameter != "0" && !parameter.isEmpty
         }
         return
     }
 
-    guard sequence.hasPrefix("\u{001B}]8;") else { return }
-    var payload = sequence.dropFirst(4)
+    let hyperlinkPrefixLength = if sequence.hasPrefix("\u{001B}]8;") {
+        4
+    } else if sequence.hasPrefix("\u{009D}8;") {
+        3
+    } else {
+        0
+    }
+    guard hyperlinkPrefixLength > 0 else { return }
+    var payload = sequence.dropFirst(hyperlinkPrefixLength)
     if payload.hasSuffix("\u{0007}") {
         payload = payload.dropLast()
     } else if payload.hasSuffix("\u{001B}\\") {
         payload = payload.dropLast(2)
+    } else if payload.hasSuffix("\u{009C}") {
+        payload = payload.dropLast()
     }
     guard let separator = payload.firstIndex(of: ";") else { return }
-    hasActiveHyperlink = !payload[payload.index(after: separator)...].isEmpty
+    let isOpen = !payload[payload.index(after: separator)...].isEmpty
+    activeHyperlinkTerminator = isOpen ? ansiOSCTerminator(in: sequence) : nil
 }
 
 private func padCell(_ text: String, width: Int, align: Table.ColumnAlignment?, padding: Int) -> String {
     let padded = String(repeating: " ", count: padding) + text + String(repeating: " ", count: padding)
-    let padNeeded = max(0, width - visibleWidth(stripANSI(padded)))
+    let padNeeded = max(0, width - visibleWidth(padded))
     switch align ?? .left {
     case .left:
         return padded + String(repeating: " ", count: padNeeded)
