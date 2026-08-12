@@ -561,6 +561,8 @@ private func updateANSIState(
         payload = payload.dropLast()
     } else if payload.hasSuffix("\u{001B}\\") {
         payload = payload.dropLast(2)
+    } else if payload.hasSuffix("\u{009C}") {
+        payload = payload.dropLast()
     }
     guard let separator = payload.firstIndex(of: ";") else { return }
     let isOpen = !payload[payload.index(after: separator)...].isEmpty

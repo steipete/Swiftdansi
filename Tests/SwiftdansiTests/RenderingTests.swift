@@ -332,6 +332,29 @@ struct RenderingTests {
     }
 
     @Test
+    func `table truncation does not duplicate a completed C1 OSC close`() {
+        let open = "\u{009D}8;;https://example.com\u{009C}"
+        let close = "\u{009D}8;;\u{009C}"
+        let md = "| Link |\n|---|\n| \(open)linked\(close) trailingcontentthatexceeds |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 24,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("linked") })
+            .map(String.init)
+
+        #expect(body?.components(separatedBy: open).count == 2)
+        #expect(body?.components(separatedBy: close).count == 2)
+        #expect(body?.contains("…") == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
+    }
+
+    @Test
     func `table truncation measures wide ellipsis by display width`() {
         let md = """
         | ID | Text |
