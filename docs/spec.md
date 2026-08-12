@@ -11,19 +11,19 @@ Goal: Swift 6.2 Markdown → ANSI renderer and CLI, mirroring Markdansi behavior
 ### Library
 - `render(_ markdown: String, options: RenderOptions = .init()) -> String`
 - `createRenderer(options:) -> (String) -> String`
-- `strip(_ markdown: String, options:) -> String` (forces `color=false`, `hyperlinks=false`, preserves wrap flag).
+- `strip(_ markdown: String, options:) -> String` (forces `color=false` and `hyperlinks=false`; preserves an explicit wrap choice and otherwise enables wrapping).
 
 `RenderOptions` fields match Markdansi:
 - `wrap` (default `true`), `width` (default TTY cols or 80 when wrapping).
 - `hyperlinks` (default: auto when color enabled), `color` (default: TTY).
 - `theme` / `customTheme`, built-ins: `default | dim | bright | solarized | monochrome | contrast`.
-- `listIndent` (default 2), `quotePrefix` (default `│ `).
+- `listIndent` (default 2), `listMarker` (default `-`), `quotePrefix` (default `│ `).
 - Table: `tableBorder unicode|ascii|none`, `tablePadding`, `tableDense`, `tableTruncate`, `tableEllipsis`.
 - Code: `codeBox`, `codeGutter`, `codeWrap`.
 - `highlighter` closure `(code, lang?) -> String` applied to fenced code lines.
 
 ### CLI
-`swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-links] [--force-links] [--theme ...] [--list-indent N] [--quote-prefix STR] [--table-border ascii|unicode|none] [--table-padding N] [--table-dense] [--table-truncate] [--table-ellipsis STR] [--code-wrap] [--code-box] [--code-gutter]`
+`swiftdansi [--in FILE] [--out FILE] [--width N] [--no-wrap] [--no-color] [--no-links] [--force-links] [--theme ...] [--list-indent N] [--quote-prefix STR] [--table-border ascii|unicode|none] [--table-padding N] [--table-dense] [--table-truncate BOOL] [--no-table-truncate] [--table-ellipsis STR] [--code-wrap BOOL] [--no-code-wrap] [--code-box BOOL] [--no-code-box] [--code-gutter]`
 - Input: stdin when `--in` missing or `-`.
 - Output: stdout unless `--out` provided.
 - Handles SIGPIPE for filter-style use.
@@ -39,7 +39,7 @@ Goal: Swift 6.2 Markdown → ANSI renderer and CLI, mirroring Markdansi behavior
 - Thematic breaks: 40-character em-dash line, clamped by width when wrapping.
 
 ## Platforms & Toolchain
-- Platforms: macOS 15+, iOS 18+, tvOS 18+, watchOS 11+, visionOS 2+, and Ubuntu 24.04.
+- Platforms: macOS 14+, iOS 17+, tvOS 17+, watchOS 10+, visionOS 1+, and Ubuntu 24.04.
 - Swift 6.2 language mode. Build/test with SwiftPM + Swift Testing.
 
 ## Testing
