@@ -9,9 +9,7 @@ public func visibleWidth(_ text: String) -> Int {
 
 /// Strip ANSI escape sequences.
 public func stripANSI(_ text: String) -> String {
-    // Quick regex for CSI/OSC; not exhaustive but sufficient for renderer output.
-    let pattern = #"\u001B\[[0-9;]*[A-Za-z]|\u001B\][^\u0007]*\u0007"#
-    return text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+    strippingANSISequences(text)
 }
 
 /// Wrap a paragraph string on spaces to the given width. Words longer than width overflow.

@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - Keep truncated tables within their display-width budget while preserving balanced ANSI styling, OSC-8 links, and wide-character ellipsis markers.
+- Preserve visible content and matching terminators for ST-terminated OSC-8 links, and strip the complete CSI/OSC control forms with one shared scanner.
+- Share foreground/background ANSI color parsing and ignore malformed custom hex colors instead of rendering them as white.
 
 ## 0.3.0 — 2026-08-02
 
