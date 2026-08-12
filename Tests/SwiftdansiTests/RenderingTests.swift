@@ -284,6 +284,23 @@ struct RenderingTests {
     }
 
     @Test
+    func `ANSI scanner strips seven and eight bit string controls`() {
+        let sevenBitIntroducers = ["P", "X", "^", "_"]
+        for introducer in sevenBitIntroducers {
+            let value = "\u{001B}\(introducer)metadata\u{001B}\\visible"
+            #expect(stripANSI(value) == "visible")
+            #expect(visibleWidth(value) == visibleWidth("visible"))
+        }
+
+        let eightBitIntroducers = ["\u{0090}", "\u{0098}", "\u{009E}", "\u{009F}"]
+        for introducer in eightBitIntroducers {
+            let value = "\(introducer)metadata\u{009C}visible"
+            #expect(stripANSI(value) == "visible")
+            #expect(visibleWidth(value) == visibleWidth("visible"))
+        }
+    }
+
+    @Test
     func `table truncation balances ST terminated OSC hyperlinks`() {
         let open = "\u{001B}]8;;https://example.com\u{001B}\\"
         let close = "\u{001B}]8;;\u{001B}\\"

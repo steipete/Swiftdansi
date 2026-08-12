@@ -31,7 +31,7 @@ func ansiSequenceEnd(in text: String, from start: String.Index) -> String.Index?
         }
     case "\u{009B}":
         return csiSequenceEnd(in: text, from: introducer)
-    case "\u{009D}":
+    case "\u{0090}", "\u{0098}", "\u{009D}", "\u{009E}", "\u{009F}":
         return stringControlSequenceEnd(in: text, from: introducer)
     default:
         return nil
@@ -52,7 +52,7 @@ func ansiOSCTerminator(in sequence: Substring) -> ANSIOSCTerminator? {
 }
 
 func strippingANSISequences(_ text: String) -> String {
-    guard text.contains("\u{001B}") || text.contains("\u{009B}") || text.contains("\u{009D}") else {
+    guard text.unicodeScalars.contains(where: isANSIControlIntroducer) else {
         return text
     }
 
@@ -68,6 +68,15 @@ func strippingANSISequences(_ text: String) -> String {
         cursor = text.index(after: cursor)
     }
     return result
+}
+
+private func isANSIControlIntroducer(_ scalar: Unicode.Scalar) -> Bool {
+    switch scalar.value {
+    case 0x1B, 0x90, 0x98, 0x9B, 0x9D, 0x9E, 0x9F:
+        true
+    default:
+        false
+    }
 }
 
 private func csiSequenceEnd(in text: String, from start: String.Index) -> String.Index? {

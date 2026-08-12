@@ -5,7 +5,7 @@
 - Re-run any repo helpers that surface docs/rules (e.g., `pnpm mcp:docs:list`) when you suspect instructions changed.
 
 ## Project Structure & Modules
-- Sources live in `Sources/Swiftdansi` (renderer, options, styler); CLI entry points under `Sources/swiftdansi`.
+- Sources live in `Sources/Swiftdansi` (renderer, options, styler); reusable CLI code lives in `Sources/SwiftdansiCLI`, with the executable entry point in `Sources/SwiftdansiCLIMain`.
 - Tests: `Tests/SwiftdansiTests` (Swift‑Testing). Keep new cases near the behavior they cover.
 - Docs & marketing: `README.md`, images in repo root (e.g., `swiftdansi.png`).
 
