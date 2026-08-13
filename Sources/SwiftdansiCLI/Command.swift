@@ -77,6 +77,42 @@ public struct SwiftdansiCommand: ParsableCommand {
 
     public init() {}
 
+    var renderOptions: RenderOptions {
+        var options = RenderOptions()
+        options.wrap = !self.noWrap
+        options.width = self.width
+        options.color = self.noColor ? false : nil
+        if self.forceLinks {
+            options.hyperlinks = true
+        } else if self.noLinks {
+            options.hyperlinks = false
+        }
+        options.theme = self.theme
+        options.listIndent = self.listIndent
+        options.quotePrefix = self.quotePrefix
+        options.tableBorder = self.tableBorder
+        options.tablePadding = self.tablePadding
+        options.tableDense = self.tableDense
+        if let tableTruncate {
+            options.tableTruncate = tableTruncate
+        } else {
+            options.tableTruncate = !self.noTableTruncate
+        }
+        options.tableEllipsis = self.tableEllipsis
+        if let codeWrap {
+            options.codeWrap = codeWrap
+        } else {
+            options.codeWrap = !self.noCodeWrap
+        }
+        if let codeBox {
+            options.codeBox = codeBox
+        } else {
+            options.codeBox = !self.noCodeBox
+        }
+        options.codeGutter = self.codeGutter
+        return options
+    }
+
     public func run() throws {
         signal(SIGPIPE, SIG_IGN)
 
@@ -90,24 +126,7 @@ public struct SwiftdansiCommand: ParsableCommand {
             throw ValidationError("Input is not valid UTF-8")
         }
 
-        var opts = RenderOptions()
-        opts.wrap = !self.noWrap
-        opts.width = self.width
-        opts.color = !self.noColor
-        if self.forceLinks { opts.hyperlinks = true } else if self.noLinks { opts.hyperlinks = false }
-        opts.theme = self.theme
-        opts.listIndent = self.listIndent
-        opts.quotePrefix = self.quotePrefix
-        opts.tableBorder = self.tableBorder
-        opts.tablePadding = self.tablePadding
-        opts.tableDense = self.tableDense
-        if let t = tableTruncate { opts.tableTruncate = t } else { opts.tableTruncate = !self.noTableTruncate }
-        opts.tableEllipsis = self.tableEllipsis
-        if let cw = codeWrap { opts.codeWrap = cw } else { opts.codeWrap = !self.noCodeWrap }
-        if let cb = codeBox { opts.codeBox = cb } else { opts.codeBox = !self.noCodeBox }
-        opts.codeGutter = self.codeGutter
-
-        let output = Swiftdansi.render(markdown, options: opts)
+        let output = Swiftdansi.render(markdown, options: self.renderOptions)
 
         if let outPath = out {
             try output.write(to: URL(fileURLWithPath: outPath), atomically: true, encoding: .utf8)

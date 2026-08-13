@@ -1,7 +1,7 @@
 import Foundation
-import SwiftdansiCLI
 import Testing
 @testable import Swiftdansi
+@testable import SwiftdansiCLI
 
 struct RenderingTests {
     @Test
@@ -457,6 +457,15 @@ struct RenderingTests {
         let cmd = try SwiftdansiCommand.parse(["--force-links", "--no-color"])
         #expect(cmd.forceLinks)
         #expect(cmd.noColor)
+    }
+
+    @Test
+    func `cli preserves automatic color detection by default`() throws {
+        let automatic = try SwiftdansiCommand.parse([])
+        let disabled = try SwiftdansiCommand.parse(["--no-color"])
+
+        #expect(automatic.renderOptions.color == nil)
+        #expect(disabled.renderOptions.color == false)
     }
 
     @Test
