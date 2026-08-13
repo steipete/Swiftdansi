@@ -48,7 +48,7 @@ func resolve(_ user: RenderOptions, terminal: TerminalContext = .current()) -> R
     let width = user.width ?? autoWidth
     let color = user.color ?? terminal.isTTY
     let hyperlinks = color ? (user.hyperlinks ?? hyperlinkSupported(
-        env: terminal.environment,
+        environment: terminal.environment,
         isTTY: terminal.isTTY)) : false
     let baseTheme = user.customTheme ?? (user.theme.map { Themes.named($0) } ?? Themes.default)
     let listIndent = user.listIndent ?? 2
