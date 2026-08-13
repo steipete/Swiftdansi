@@ -1,7 +1,7 @@
 import Foundation
-import SwiftdansiCLI
 import Testing
 @testable import Swiftdansi
+@testable import SwiftdansiCLI
 
 struct RenderingTests {
     @Test
@@ -457,6 +457,36 @@ struct RenderingTests {
         let cmd = try SwiftdansiCommand.parse(["--force-links", "--no-color"])
         #expect(cmd.forceLinks)
         #expect(cmd.noColor)
+    }
+
+    @Test
+    func `cli preserves automatic color detection by default`() throws {
+        let automatic = try SwiftdansiCommand.parse([])
+        let disabled = try SwiftdansiCommand.parse(["--no-color"])
+        let outputFile = try SwiftdansiCommand.parse(["--out", "output.txt"])
+
+        #expect(automatic.renderOptions.color == nil)
+        #expect(disabled.renderOptions.color == false)
+        #expect(outputFile.renderOptions.color == false)
+    }
+
+    @Test
+    func `cli output file excludes terminal control sequences`() throws {
+        let temporaryDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let inputURL = temporaryDirectory.appendingPathComponent("input.md")
+        let outputURL = temporaryDirectory.appendingPathComponent("output.txt")
+        try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
+
+        try "# Header\n\n[Link](https://example.com)\n".write(to: inputURL, atomically: true, encoding: .utf8)
+        let command = try SwiftdansiCommand.parse(["--in", inputURL.path, "--out", outputURL.path])
+        try command.run()
+        let output = try String(contentsOf: outputURL, encoding: .utf8)
+
+        #expect(output.contains("Header"))
+        #expect(output.contains("https://example.com"))
+        #expect(!output.contains("\u{001B}"))
     }
 
     @Test
