@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## 0.3.1 — Unreleased
 
 ### Fixed
+- Drop incomplete terminal controls through end of input and treat BEL as a terminator only for OSC, preventing malformed control payloads from leaking into plain output or display-width calculations.
 - Preserve automatic TTY-based color detection in the CLI while keeping redirected and `--out` file output free of ANSI styling by default.
 - Keep truncated tables within their display-width budget while preserving balanced ANSI styling, OSC-8 links, and wide-character ellipsis markers.
 - Preserve visible content and matching BEL, ST, and C1 ST terminators for OSC-8 links, strip complete 7-bit and 8-bit CSI/OSC/DCS/SOS/PM/APC controls with one shared scanner, and keep the no-control fast path to one scan.

@@ -33,7 +33,7 @@ private func renderResolved(markdown: String, options: ResolvedOptions) -> Strin
         ctx: RenderContext(options: options, styler: styler),
         indentLevel: 0,
         isTightList: false).joined()
-    return options.color ? body : stripANSI(body)
+    return options.color ? preservingCompleteANSISequences(body) : stripANSI(body)
 }
 
 private struct RenderContext {
@@ -496,9 +496,11 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
     var cursor = text.startIndex
     var hasActiveSGR = false
     var activeHyperlinkTerminator: ANSIOSCTerminator?
+    var discardedIncompleteControl = false
 
-    while cursor < text.endIndex {
-        if let sequenceEnd = ansiSequenceEnd(in: text, from: cursor) {
+    scan: while cursor < text.endIndex {
+        switch scanANSISequence(in: text, from: cursor) {
+        case let .complete(sequenceEnd):
             let sequence = text[cursor..<sequenceEnd]
             result.append(contentsOf: sequence)
             updateANSIState(
@@ -507,6 +509,12 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
                 activeHyperlinkTerminator: &activeHyperlinkTerminator)
             cursor = sequenceEnd
             continue
+        case .incomplete:
+            discardedIncompleteControl = true
+            cursor = text.endIndex
+            break scan
+        case .notControl:
+            break
         }
 
         let next = text.index(after: cursor)
@@ -518,7 +526,7 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
         cursor = next
     }
 
-    guard cursor < text.endIndex else { return result }
+    guard cursor < text.endIndex || discardedIncompleteControl else { return result }
     if hasActiveSGR {
         result.append("\u{001B}[0m")
     }
