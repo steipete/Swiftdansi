@@ -81,7 +81,7 @@ public struct SwiftdansiCommand: ParsableCommand {
         var options = RenderOptions()
         options.wrap = !self.noWrap
         options.width = self.width
-        options.color = self.noColor ? false : nil
+        options.color = self.noColor || self.out != nil ? false : nil
         if self.forceLinks {
             options.hyperlinks = true
         } else if self.noLinks {
