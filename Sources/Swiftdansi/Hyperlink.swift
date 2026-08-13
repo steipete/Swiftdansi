@@ -1,45 +1,20 @@
-import Foundation
-#if canImport(Darwin)
-import Darwin
-#elseif canImport(Glibc)
-import Glibc
-#endif
-
-struct HyperlinkSupport {
-    let environment: [String: String]
-    let isTTY: Bool
-
-    static func current(stream: FileHandle = .standardOutput) -> HyperlinkSupport {
-        HyperlinkSupport(environment: ProcessInfo.processInfo.environment, isTTY: isatty(stream.fileDescriptor) != 0)
-    }
-
-    func supported() -> Bool {
-        guard self.isTTY else { return false }
-        if self.environment["FORCE_HYPERLINK"] == "1" { return true }
-        if self.environment["NO_COLOR"] != nil { return false }
-        if self.environment["WT_SESSION"] != nil { return true } // Windows Terminal
-        if let prog = environment["TERM_PROGRAM"], ["iTerm.app", "WezTerm", "Hyper"].contains(prog) { return true }
-        if self.environment["DOMTERM"] != nil { return true }
-        if self.environment["VTE_VERSION"] != nil { return true }
-        if self.environment["KONSOLE_VERSION"] != nil { return true }
-        if let term = environment["TERM"]?.lowercased() {
-            if term.contains("xterm-kitty") { return true }
-            if term.contains("wezterm") { return true }
-            if term.contains("vte"), self.environment["COLORTERM"] == "truecolor" { return true }
-            if term.contains("screen"), self.environment["TERM_PROGRAM"] == "tmux" { return true }
-        }
-        return false
-    }
-}
-
 /// Port of `supports-hyperlinks` logic (best-effort).
-func hyperlinkSupported(stream: FileHandle = .standardOutput) -> Bool {
-    HyperlinkSupport.current(stream: stream).supported()
-}
-
-/// Testable entry.
-func hyperlinkSupported(env: [String: String], isTTY: Bool) -> Bool {
-    HyperlinkSupport(environment: env, isTTY: isTTY).supported()
+func hyperlinkSupported(environment: [String: String], isTTY: Bool) -> Bool {
+    guard isTTY else { return false }
+    if environment["FORCE_HYPERLINK"] == "1" { return true }
+    if environment["NO_COLOR"] != nil { return false }
+    if environment["WT_SESSION"] != nil { return true } // Windows Terminal
+    if let program = environment["TERM_PROGRAM"], ["iTerm.app", "WezTerm", "Hyper"].contains(program) { return true }
+    if environment["DOMTERM"] != nil { return true }
+    if environment["VTE_VERSION"] != nil { return true }
+    if environment["KONSOLE_VERSION"] != nil { return true }
+    if let term = environment["TERM"]?.lowercased() {
+        if term.contains("xterm-kitty") { return true }
+        if term.contains("wezterm") { return true }
+        if term.contains("vte"), environment["COLORTERM"] == "truecolor" { return true }
+        if term.contains("screen"), environment["TERM_PROGRAM"] == "tmux" { return true }
+    }
+    return false
 }
 
 func osc8(url: String, text: String) -> String {

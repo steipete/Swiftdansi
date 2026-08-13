@@ -673,13 +673,13 @@ struct RenderingTests {
     @Test
     func `hyperlink detection matches env`() {
         let envTrue = ["WT_SESSION": "1"]
-        #expect(hyperlinkSupported(env: envTrue, isTTY: true) == true)
+        #expect(hyperlinkSupported(environment: envTrue, isTTY: true) == true)
         let envNoColor = ["NO_COLOR": "1"]
-        #expect(hyperlinkSupported(env: envNoColor, isTTY: true) == false)
+        #expect(hyperlinkSupported(environment: envNoColor, isTTY: true) == false)
         let envForce = ["FORCE_HYPERLINK": "1"]
-        #expect(hyperlinkSupported(env: envForce, isTTY: true) == true)
+        #expect(hyperlinkSupported(environment: envForce, isTTY: true) == true)
         let envNotty = ["WT_SESSION": "1"]
-        #expect(hyperlinkSupported(env: envNotty, isTTY: false) == false)
+        #expect(hyperlinkSupported(environment: envNotty, isTTY: false) == false)
     }
 
     @Test
@@ -709,9 +709,9 @@ struct RenderingTests {
     }
 
     @Test
-    func `pipe is not a tty`() {
+    func `terminal context recognizes pipe is not a tty`() {
         let pipe = Pipe()
-        #expect(HyperlinkSupport.current(stream: pipe.fileHandleForWriting).isTTY == false)
+        #expect(TerminalContext.current(stream: pipe.fileHandleForWriting).isTTY == false)
     }
 
     @Test
