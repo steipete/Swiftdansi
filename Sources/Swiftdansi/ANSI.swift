@@ -15,27 +15,45 @@ enum ANSIOSCTerminator {
     }
 }
 
-func ansiSequenceEnd(in text: String, from start: String.Index) -> String.Index? {
-    let introducer = text.index(after: start)
-    guard introducer < text.endIndex else { return nil }
+enum ANSISequenceScanResult {
+    case notControl
+    case complete(end: String.Index)
+    case incomplete
+}
 
+func scanANSISequence(in text: String, from start: String.Index) -> ANSISequenceScanResult {
     switch text[start] {
     case "\u{001B}":
+        let introducer = text.index(after: start)
+        guard introducer < text.endIndex else { return .incomplete }
         switch text[introducer] {
         case "[":
-            return csiSequenceEnd(in: text, from: text.index(after: introducer))
+            return scanResult(csiSequenceEnd(in: text, from: text.index(after: introducer)))
         case "]", "P", "X", "^", "_":
-            return stringControlSequenceEnd(in: text, from: text.index(after: introducer))
+            return scanResult(stringControlSequenceEnd(
+                in: text,
+                from: text.index(after: introducer),
+                allowsBell: text[introducer] == "]"))
         default:
-            return text.index(after: introducer)
+            if text[introducer].unicodeScalars.contains(where: isANSIControlIntroducer) {
+                return .complete(end: introducer)
+            }
+            return .complete(end: text.index(after: introducer))
         }
     case "\u{009B}":
-        return csiSequenceEnd(in: text, from: introducer)
+        return scanResult(csiSequenceEnd(in: text, from: text.index(after: start)))
     case "\u{0090}", "\u{0098}", "\u{009D}", "\u{009E}", "\u{009F}":
-        return stringControlSequenceEnd(in: text, from: introducer)
+        return scanResult(stringControlSequenceEnd(
+            in: text,
+            from: text.index(after: start),
+            allowsBell: text[start] == "\u{009D}"))
     default:
-        return nil
+        return .notControl
     }
+}
+
+private func scanResult(_ end: String.Index?) -> ANSISequenceScanResult {
+    end.map { .complete(end: $0) } ?? .incomplete
 }
 
 func ansiOSCTerminator(in sequence: Substring) -> ANSIOSCTerminator? {
@@ -60,14 +78,38 @@ func strippingANSISequences(_ text: String) -> String {
     result.reserveCapacity(text.utf8.count)
     var cursor = text.startIndex
     while cursor < text.endIndex {
-        if let sequenceEnd = ansiSequenceEnd(in: text, from: cursor) {
+        switch scanANSISequence(in: text, from: cursor) {
+        case let .complete(sequenceEnd):
             cursor = sequenceEnd
-            continue
+        case .incomplete:
+            return result
+        case .notControl:
+            result.append(text[cursor])
+            cursor = text.index(after: cursor)
         }
-        result.append(text[cursor])
-        cursor = text.index(after: cursor)
     }
     return result
+}
+
+func preservingCompleteANSISequences(_ text: String) -> String {
+    guard text.unicodeScalars.contains(where: isANSIControlIntroducer) else {
+        return text
+    }
+
+    var cursor = text.startIndex
+    while cursor < text.endIndex {
+        switch scanANSISequence(in: text, from: cursor) {
+        case let .complete(sequenceEnd):
+            cursor = sequenceEnd
+        case .incomplete:
+            // A terminal treats the remaining bytes as private control payload. Degrade the
+            // entire safe prefix to plain text so generated styles cannot remain open.
+            return strippingANSISequences(text)
+        case .notControl:
+            cursor = text.index(after: cursor)
+        }
+    }
+    return text
 }
 
 private func isANSIControlIntroducer(_ scalar: Unicode.Scalar) -> Bool {
@@ -95,12 +137,16 @@ private func csiSequenceEnd(in text: String, from start: String.Index) -> String
     return nil
 }
 
-private func stringControlSequenceEnd(in text: String, from start: String.Index) -> String.Index? {
+private func stringControlSequenceEnd(
+    in text: String,
+    from start: String.Index,
+    allowsBell: Bool) -> String.Index?
+{
     var cursor = start
     while cursor < text.endIndex {
         let character = text[cursor]
         let next = text.index(after: cursor)
-        if character == "\u{0007}" {
+        if allowsBell, character == "\u{0007}" {
             return next
         }
         if character == "\u{009C}" {

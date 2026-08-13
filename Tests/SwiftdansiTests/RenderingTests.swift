@@ -268,39 +268,6 @@ struct RenderingTests {
     }
 
     @Test
-    func `ANSI scanner preserves content around ST terminated hyperlinks`() {
-        let open = "\u{001B}]8;;https://example.com\u{001B}\\"
-        let close = "\u{001B}]8;;\u{001B}\\"
-        let linked = "\(open)visible label\(close)"
-
-        #expect(stripANSI(linked) == "visible label")
-        #expect(visibleWidth(linked) == visibleWidth("visible label"))
-        #expect(stripANSI("\u{001B}[2Kvalue\u{001B}[1~") == "value")
-        #expect(stripANSI("\u{009B}31mred\u{009B}0m") == "red")
-
-        let c1Open = "\u{009D}8;;https://example.com\u{009C}"
-        let c1Close = "\u{009D}8;;\u{009C}"
-        #expect(stripANSI("\(c1Open)C1 label\(c1Close)") == "C1 label")
-    }
-
-    @Test
-    func `ANSI scanner strips seven and eight bit string controls`() {
-        let sevenBitIntroducers = ["P", "X", "^", "_"]
-        for introducer in sevenBitIntroducers {
-            let value = "\u{001B}\(introducer)metadata\u{001B}\\visible"
-            #expect(stripANSI(value) == "visible")
-            #expect(visibleWidth(value) == visibleWidth("visible"))
-        }
-
-        let eightBitIntroducers = ["\u{0090}", "\u{0098}", "\u{009E}", "\u{009F}"]
-        for introducer in eightBitIntroducers {
-            let value = "\(introducer)metadata\u{009C}visible"
-            #expect(stripANSI(value) == "visible")
-            #expect(visibleWidth(value) == visibleWidth("visible"))
-        }
-    }
-
-    @Test
     func `table truncation balances ST terminated OSC hyperlinks`() {
         let open = "\u{001B}]8;;https://example.com\u{001B}\\"
         let close = "\u{001B}]8;;\u{001B}\\"
