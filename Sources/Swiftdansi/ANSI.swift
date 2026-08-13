@@ -38,7 +38,7 @@ func scanANSISequence(in text: String, from start: String.Index) -> ANSISequence
             if text[introducer].unicodeScalars.contains(where: isANSIControlIntroducer) {
                 return .complete(end: introducer)
             }
-            return .complete(end: text.index(after: introducer))
+            return scanResult(escapeSequenceEnd(in: text, from: introducer))
         }
     case "\u{009B}":
         return scanResult(csiSequenceEnd(in: text, from: text.index(after: start)))
@@ -119,6 +119,29 @@ private func isANSIControlIntroducer(_ scalar: Unicode.Scalar) -> Bool {
     default:
         false
     }
+}
+
+private func escapeSequenceEnd(in text: String, from start: String.Index) -> String.Index? {
+    var cursor = start
+    while cursor < text.endIndex {
+        let character = text[cursor]
+        let next = text.index(after: cursor)
+        guard character.unicodeScalars.count == 1,
+              let value = character.unicodeScalars.first?.value
+        else {
+            return nil
+        }
+
+        switch value {
+        case 0x20...0x2F:
+            cursor = next
+        case 0x30...0x7E:
+            return next
+        default:
+            return nil
+        }
+    }
+    return nil
 }
 
 private func csiSequenceEnd(in text: String, from start: String.Index) -> String.Index? {

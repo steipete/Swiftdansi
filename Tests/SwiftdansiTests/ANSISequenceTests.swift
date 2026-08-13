@@ -36,6 +36,25 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `scanner strips ESC sequences with intermediate bytes`() {
+        let sequences = [
+            "\u{001B}(B", // Select ASCII character set.
+            "\u{001B}(0", // Select DEC line-drawing character set.
+            "\u{001B}#8", // DEC screen alignment test.
+            "\u{001B}%G", // Select UTF-8 character set.
+            "\u{001B} !B", // Multiple intermediate bytes are valid.
+        ]
+
+        for sequence in sequences {
+            let value = "before\(sequence)after"
+            #expect(stripANSI(value) == "beforeafter")
+            #expect(visibleWidth(value) == visibleWidth("beforeafter"))
+        }
+
+        #expect(stripANSI("before\u{001B}( ") == "before")
+    }
+
+    @Test
     func `scanner drops incomplete controls through end of input`() {
         let controls = [
             "\u{001B}]metadata",
