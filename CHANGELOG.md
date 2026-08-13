@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## 0.3.1 — Unreleased
 
 ### Fixed
+- Strip complete ESC sequences with intermediate bytes, including terminal character-set designators, without leaking their final byte into plain output or display-width calculations.
 - Drop incomplete terminal controls through end of input and treat BEL as a terminator only for OSC, preventing malformed control payloads from leaking into plain output or display-width calculations.
 - Preserve automatic TTY-based color detection in the CLI while keeping redirected and `--out` file output free of ANSI styling by default.
 - Keep truncated tables within their display-width budget while preserving balanced ANSI styling, OSC-8 links, and wide-character ellipsis markers.
