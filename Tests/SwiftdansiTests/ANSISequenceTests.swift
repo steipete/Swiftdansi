@@ -243,6 +243,15 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `fixed C1 controls match their seven bit equivalents`() {
+        let fixedControls: [UInt32] = Array(0x80...0x8F) + Array(0x91...0x97) + Array(0x99...0x9A)
+        for value in fixedControls {
+            let scalar = Unicode.Scalar(value).map(String.init) ?? ""
+            #expect(stripANSI("before\(scalar)after") == "beforeafter")
+        }
+    }
+
+    @Test
     func `colored renderer degrades malformed control output to a plain safe prefix`() {
         let controls = [
             "\u{001B}]private",

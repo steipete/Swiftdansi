@@ -504,13 +504,25 @@ private func truncateCell(
 {
     if visibleWidth(text) <= width { return text }
     let ellipsisWidth = visibleWidth(ellipsis)
-    if width <= ellipsisWidth {
+    let boundaryReserve = ellipsisCanReclusterWithPrevious(ellipsis) ? 2 : 0
+    let reservedWidth = ellipsisWidth + boundaryReserve
+    if width <= reservedWidth {
+        if boundaryReserve > 0 { return "" }
         return sliceCellContent(ellipsis, width: width, ansiProtection: ansiProtection)
     }
-    return sliceCellContent(
+    let prefix = sliceCellContent(
         text,
-        width: width - ellipsisWidth,
-        ansiProtection: ansiProtection) + ellipsis
+        width: width - reservedWidth,
+        ansiProtection: ansiProtection)
+    if boundaryReserve > 0, visibleWidth(prefix) == 0 { return "" }
+    return prefix + ellipsis
+}
+
+private func ellipsisCanReclusterWithPrevious(_ ellipsis: String) -> Bool {
+    guard let scalar = ellipsis.unicodeScalars.first else { return false }
+    return scalar.properties.isGraphemeExtend ||
+        scalar.properties.isJoinControl ||
+        scalar.properties.isEmojiModifier
 }
 
 private func sliceCellContent(

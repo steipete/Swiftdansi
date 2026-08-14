@@ -57,6 +57,23 @@ struct ANSIRenderingSafetyTests {
 
         #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 4 })
     }
+
+    @Test
+    func `table truncation reserves width for a reclustering ellipsis`() {
+        let variationSuffix = "\u{FE0F}"
+        let md = "| V |\n|---|\n| 1X |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 3,
+                color: false,
+                tablePadding: 0,
+                tableTruncate: true,
+                tableEllipsis: variationSuffix))
+
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 3 })
+    }
 }
 
 struct RenderingTests {

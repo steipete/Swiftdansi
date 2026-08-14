@@ -42,6 +42,8 @@ func scanANSISequence(in text: String, from start: String.Index) -> ANSISequence
             in: text,
             from: scalars.index(after: start),
             allowsBell: scalars[start].value == 0x9D)
+    case 0x80...0x8F, 0x91...0x97, 0x99...0x9A:
+        return completedSequenceResult(in: text, controlEnd: scalars.index(after: start))
     default:
         return .notControl
     }
@@ -238,7 +240,7 @@ private func ansiProtectionToken(marker: String, index: Int) -> String {
 
 private func isANSIControlScalar(_ scalar: Unicode.Scalar) -> Bool {
     switch scalar.value {
-    case 0x1B, 0x90, 0x98, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F:
+    case 0x1B, 0x80...0x9F:
         true
     default:
         false
