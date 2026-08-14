@@ -241,6 +241,30 @@ struct RenderingTests {
     }
 
     @Test
+    func `table truncation preserves recovered SGR state and reclustered width`() {
+        let open = "\u{001B}[31m"
+        let close = "\u{001B}[0m"
+        let keycapSuffix = "\u{FE0F}\u{20E3}"
+        let md = "| V |\n|---|\n| \(open)1\(close)\(keycapSuffix)XYZ |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 4,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true,
+                tableEllipsis: ""))
+        let body = out.split(separator: "\n").first(where: { line in
+            line.unicodeScalars.contains("\u{20E3}")
+        }).map(String.init)
+
+        let expectedStyledKeycap = "\(open)1\(close)\(keycapSuffix)"
+        #expect(body?.range(of: expectedStyledKeycap, options: .literal) != nil)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 4 })
+    }
+
+    @Test
     func `table truncation balances OSC hyperlinks`() {
         let url = "https://example.com/nested"
         let md = """

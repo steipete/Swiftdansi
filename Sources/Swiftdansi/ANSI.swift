@@ -18,6 +18,7 @@ enum ANSIOSCTerminator {
 enum ANSISequenceScanResult {
     case notControl
     case complete(end: String.Index)
+    case completeWithSuffix(end: String.Index, controlEnd: String.Index, suffix: String)
     case recovered(end: String.Index, suffix: String)
     case malformed(recovery: String.Index)
     case incomplete
@@ -79,6 +80,9 @@ func strippingANSISequences(_ text: String) -> String {
         switch scanANSISequence(in: text, from: cursor) {
         case let .complete(sequenceEnd):
             cursor = sequenceEnd
+        case let .completeWithSuffix(sequenceEnd, _, suffix):
+            result.append(contentsOf: suffix)
+            cursor = sequenceEnd
         case let .recovered(sequenceEnd, suffix):
             result.append(contentsOf: suffix)
             cursor = sequenceEnd
@@ -104,8 +108,11 @@ func preservingCompleteANSISequences(_ text: String) -> String {
         switch scanANSISequence(in: text, from: cursor) {
         case let .complete(sequenceEnd):
             cursor = sequenceEnd
+        case let .completeWithSuffix(sequenceEnd, _, _):
+            cursor = sequenceEnd
         case .recovered, .malformed, .incomplete:
-            // Never emit a malformed control prefix or leave generated styles open.
+            // Rebuild plain output for malformed or incomplete controls so generated styles
+            // cannot remain open.
             return strippingANSISequences(text)
         case .notControl:
             cursor = text.index(after: cursor)
@@ -136,8 +143,11 @@ private func escapeSequenceResult(in text: String, from start: String.Index) -> 
             }
             let suffix = String(character.unicodeScalars.dropFirst())
             switch value {
-            case 0x20...0x2F, 0x30...0x7E:
+            case 0x20...0x2F:
                 return .recovered(end: next, suffix: suffix)
+            case 0x30...0x7E:
+                let controlEnd = text.unicodeScalars.index(after: cursor)
+                return .completeWithSuffix(end: next, controlEnd: controlEnd, suffix: suffix)
             default:
                 return .malformed(recovery: cursor)
             }
@@ -171,10 +181,12 @@ private func csiSequenceResult(in text: String, from start: String.Index) -> ANS
             switch value {
             case 0x30...0x3F where acceptsParameters,
                  0x20...0x2F,
-                 0x40...0x7E,
                  0x00...0x1F,
                  0x7F:
                 return .recovered(end: next, suffix: suffix)
+            case 0x40...0x7E:
+                let controlEnd = text.unicodeScalars.index(after: cursor)
+                return .completeWithSuffix(end: next, controlEnd: controlEnd, suffix: suffix)
             default:
                 return .malformed(recovery: cursor)
             }

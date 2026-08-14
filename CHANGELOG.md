@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## 0.3.1 — Unreleased
 
 ### Fixed
+- Preserve recovered SGR state during table slicing and measure combining suffixes after re-clustering so truncated rows remain balanced and within width.
 - Honor CAN/SUB cancellation for control strings and strip two-byte ESC/CSI finals even when Swift groups them with a trailing combining mark.
 - Preserve visible suffixes after malformed bounded ESC and CSI controls while still dropping unterminated control-string payloads.
 - Strip complete ESC sequences with intermediate bytes, including terminal character-set designators, without leaking their final byte into plain output or display-width calculations.
