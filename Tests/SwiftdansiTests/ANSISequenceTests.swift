@@ -72,6 +72,18 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `scanner preserves combining suffix after a two byte escape`() {
+        let escaped = "before\u{001B}7\u{0301}after"
+        let csi = "before\u{001B}[31m\u{0301}after"
+        let expected = "before\u{0301}after"
+
+        #expect(stripANSI(escaped) == expected)
+        #expect(stripANSI(csi) == expected)
+        #expect(visibleWidth(escaped) == visibleWidth(expected))
+        #expect(visibleWidth(csi) == visibleWidth(expected))
+    }
+
+    @Test
     func `scanner drops incomplete controls through end of input`() {
         let controls = [
             "\u{001B}]metadata",
@@ -124,6 +136,24 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `CAN and SUB cancel string controls and preserve visible suffixes`() {
+        let sevenBitIntroducers = ["]", "P", "X", "^", "_"]
+        for introducer in sevenBitIntroducers {
+            #expect(stripANSI("before\u{001B}\(introducer)payload\u{0018}visible") == "beforevisible")
+            #expect(stripANSI("before\u{001B}\(introducer)payload\u{001A}visible") == "beforevisible")
+        }
+
+        let eightBitIntroducers = ["\u{0090}", "\u{0098}", "\u{009D}", "\u{009E}", "\u{009F}"]
+        for introducer in eightBitIntroducers {
+            #expect(stripANSI("before\(introducer)payload\u{0018}visible") == "beforevisible")
+            #expect(stripANSI("before\(introducer)payload\u{001A}visible") == "beforevisible")
+        }
+
+        #expect(stripANSI("before\u{001B}]unterminated visible") == "before")
+        #expect(stripANSI("before\u{001B}Punterminated visible") == "before")
+    }
+
+    @Test
     func `colored renderer degrades malformed control output to a plain safe prefix`() {
         let controls = [
             "\u{001B}]private",
@@ -143,5 +173,17 @@ struct ANSISequenceTests {
             options: RenderOptions(color: true))
         #expect(malformedEscape == "before💥after\n")
         #expect(!malformedEscape.unicodeScalars.contains("\u{001B}"))
+
+        let cancelledOSC = render(
+            "before\u{001B}]payload\u{0018}visible",
+            options: RenderOptions(color: true))
+        #expect(cancelledOSC == "beforevisible\n")
+        #expect(!cancelledOSC.unicodeScalars.contains("\u{001B}"))
+
+        let combinedEscape = render(
+            "before\u{001B}7\u{0301}after",
+            options: RenderOptions(color: true))
+        #expect(combinedEscape == "before\u{0301}after\n")
+        #expect(!combinedEscape.unicodeScalars.contains("\u{001B}"))
     }
 }

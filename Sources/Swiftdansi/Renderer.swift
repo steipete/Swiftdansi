@@ -509,6 +509,13 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
                 activeHyperlinkTerminator: &activeHyperlinkTerminator)
             cursor = sequenceEnd
             continue
+        case let .recovered(sequenceEnd, suffix):
+            let suffixWidth = visibleWidth(suffix)
+            guard resultWidth + suffixWidth <= max(0, width) else { break scan }
+            result.append(contentsOf: suffix)
+            resultWidth += suffixWidth
+            cursor = sequenceEnd
+            continue
         case let .malformed(recovery):
             cursor = recovery
             continue
