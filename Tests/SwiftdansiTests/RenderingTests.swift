@@ -3,6 +3,15 @@ import Testing
 @testable import Swiftdansi
 @testable import SwiftdansiCLI
 
+private func containsScalarSequence(_ needle: String, in haystack: String) -> Bool {
+    let values = haystack.unicodeScalars.map(\.value)
+    let target = needle.unicodeScalars.map(\.value)
+    guard !target.isEmpty, target.count <= values.count else { return false }
+    return (0...(values.count - target.count)).contains { start in
+        values[start..<(start + target.count)].elementsEqual(target)
+    }
+}
+
 struct RenderingTests {
     @Test
     func `inline formatting`() {
@@ -315,6 +324,29 @@ struct RenderingTests {
         let plain = strip(md, options: RenderOptions(wrap: true, width: 24, tablePadding: 0))
         #expect(plain.contains("avery"))
         #expect(!plain.contains("\u{001B}"))
+    }
+
+    @Test
+    func `table truncation recognizes ST with a combining suffix`() {
+        let open = "\u{001B}]8;;https://example.com\u{001B}\\"
+        let close = "\u{001B}]8;;\u{001B}\\"
+        let combinedClose = close + "\u{0301}"
+        let md = "| Link |\n|---|\n| \(open)linked\(combinedClose) trailingcontentthatexceeds |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 24,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { line in
+            containsScalarSequence("linked", in: stripANSI(String(line)))
+        }).map(String.init)
+
+        #expect(body.map { containsScalarSequence(combinedClose, in: $0) } == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
     }
 
     @Test

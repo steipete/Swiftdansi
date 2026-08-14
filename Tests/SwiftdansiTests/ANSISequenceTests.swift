@@ -84,6 +84,19 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `scanner recognizes ST before a combining suffix`() {
+        let suffix = "\u{0301}visible"
+        let expected = "before\(suffix)"
+        let sevenBit = "before\u{001B}]payload\u{001B}\\\(suffix)"
+        let c1 = "before\u{009D}payload\u{009C}\(suffix)"
+
+        #expect(stripANSI(sevenBit) == expected)
+        #expect(stripANSI(c1) == expected)
+        #expect(visibleWidth(sevenBit) == visibleWidth(expected))
+        #expect(visibleWidth(c1) == visibleWidth(expected))
+    }
+
+    @Test
     func `scanner drops incomplete controls through end of input`() {
         let controls = [
             "\u{001B}]metadata",
@@ -154,6 +167,32 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `non ST escape aborts string controls and is rescanned`() {
+        let sevenBitIntroducers = ["]", "P", "X", "^", "_"]
+        for introducer in sevenBitIntroducers {
+            let value = "before\u{001B}\(introducer)payload\u{001B}[31mred\u{001B}[0mafter"
+            #expect(stripANSI(value) == "beforeredafter")
+        }
+
+        let eightBitIntroducers = ["\u{0090}", "\u{0098}", "\u{009D}", "\u{009E}", "\u{009F}"]
+        for introducer in eightBitIntroducers {
+            let value = "before\(introducer)payload\u{001B}[31mred\u{001B}[0mafter"
+            #expect(stripANSI(value) == "beforeredafter")
+        }
+    }
+
+    @Test
+    func `ESC sequences execute C0 ignore DEL and honor state transitions`() {
+        for embedded in ["\u{0000}", "\u{0007}", "\u{007F}"] {
+            #expect(stripANSI("before\u{001B}(\(embedded)Bafter") == "beforeafter")
+        }
+
+        #expect(stripANSI("before\u{001B}(\u{0018}visible") == "beforevisible")
+        #expect(stripANSI("before\u{001B}(\u{001A}visible") == "beforevisible")
+        #expect(stripANSI("before\u{001B}(\u{001B}[31mred\u{001B}[0mafter") == "beforeredafter")
+    }
+
+    @Test
     func `colored renderer degrades malformed control output to a plain safe prefix`() {
         let controls = [
             "\u{001B}]private",
@@ -184,5 +223,15 @@ struct ANSISequenceTests {
             "before\u{001B}7\u{0301}after",
             options: RenderOptions(color: true))
         #expect(combinedEscape == "before\u{001B}7\u{0301}after\n")
+
+        let interruptedOSC = render(
+            "before\u{001B}]payload\u{001B}[31mred\u{001B}[0mafter",
+            options: RenderOptions(color: true))
+        #expect(interruptedOSC == "beforeredafter\n")
+
+        let combinedST = render(
+            "before\u{001B}]payload\u{001B}\\\u{0301}visible",
+            options: RenderOptions(color: true))
+        #expect(stripANSI(combinedST) == "before\u{0301}visible\n")
     }
 }

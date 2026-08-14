@@ -146,8 +146,9 @@ private func escapeSequenceResult(in text: String, from start: String.Index) -> 
             case 0x20...0x2F:
                 return .recovered(end: next, suffix: suffix)
             case 0x30...0x7E:
-                let controlEnd = text.unicodeScalars.index(after: cursor)
-                return .completeWithSuffix(end: next, controlEnd: controlEnd, suffix: suffix)
+                return completedSequenceResult(in: text, finalAt: cursor, end: next)
+            case 0x18, 0x1A, 0x00...0x17, 0x19, 0x1C...0x1F, 0x7F:
+                return .recovered(end: next, suffix: suffix)
             default:
                 return .malformed(recovery: cursor)
             }
@@ -157,7 +158,13 @@ private func escapeSequenceResult(in text: String, from start: String.Index) -> 
         case 0x20...0x2F:
             cursor = next
         case 0x30...0x7E:
-            return .complete(end: next)
+            return completedSequenceResult(in: text, finalAt: cursor, end: next)
+        case 0x18, 0x1A:
+            return .malformed(recovery: next)
+        case 0x1B:
+            return .malformed(recovery: cursor)
+        case 0x00...0x1F, 0x7F:
+            cursor = next
         default:
             return .malformed(recovery: cursor)
         }
@@ -185,8 +192,7 @@ private func csiSequenceResult(in text: String, from start: String.Index) -> ANS
                  0x7F:
                 return .recovered(end: next, suffix: suffix)
             case 0x40...0x7E:
-                let controlEnd = text.unicodeScalars.index(after: cursor)
-                return .completeWithSuffix(end: next, controlEnd: controlEnd, suffix: suffix)
+                return completedSequenceResult(in: text, finalAt: cursor, end: next)
             default:
                 return .malformed(recovery: cursor)
             }
@@ -199,7 +205,7 @@ private func csiSequenceResult(in text: String, from start: String.Index) -> ANS
             acceptsParameters = false
             cursor = next
         case 0x40...0x7E:
-            return .complete(end: next)
+            return completedSequenceResult(in: text, finalAt: cursor, end: next)
         case 0x18, 0x1A:
             return .malformed(recovery: next)
         case 0x1B:
@@ -222,19 +228,44 @@ private func stringControlSequenceResult(
     while cursor < text.endIndex {
         let character = text[cursor]
         let next = text.index(after: cursor)
-        if character == "\u{0018}" || character == "\u{001A}" {
+        guard let value = character.unicodeScalars.first?.value else {
+            return .incomplete
+        }
+        if value == 0x18 || value == 0x1A {
             return .malformed(recovery: next)
         }
-        if allowsBell, character == "\u{0007}" {
-            return .complete(end: next)
+        if allowsBell, value == 0x07 {
+            return completedSequenceResult(in: text, finalAt: cursor, end: next)
         }
-        if character == "\u{009C}" {
-            return .complete(end: next)
+        if value == 0x9C {
+            return completedSequenceResult(in: text, finalAt: cursor, end: next)
         }
-        if character == "\u{001B}", next < text.endIndex, text[next] == "\\" {
-            return .complete(end: text.index(after: next))
+        if value == 0x1B {
+            guard next < text.endIndex else { return .malformed(recovery: cursor) }
+            let terminator = text[next]
+            guard terminator.unicodeScalars.first?.value == 0x5C else {
+                return .malformed(recovery: cursor)
+            }
+            return completedSequenceResult(
+                in: text,
+                finalAt: next,
+                end: text.index(after: next))
         }
         cursor = next
     }
     return .incomplete
+}
+
+private func completedSequenceResult(
+    in text: String,
+    finalAt final: String.Index,
+    end: String.Index) -> ANSISequenceScanResult
+{
+    let character = text[final]
+    guard character.unicodeScalars.count > 1 else {
+        return .complete(end: end)
+    }
+    let controlEnd = text.unicodeScalars.index(after: final)
+    let suffix = String(character.unicodeScalars.dropFirst())
+    return .completeWithSuffix(end: end, controlEnd: controlEnd, suffix: suffix)
 }
