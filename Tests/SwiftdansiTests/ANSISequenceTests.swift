@@ -97,6 +97,22 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `string control introducer accepts combining payload in the same grapheme`() {
+        let combiningPayload = "\u{0301}private"
+        let completeOSC = "before\u{001B}]\(combiningPayload)\u{0007}after"
+        let completeDCS = "before\u{001B}P\(combiningPayload)\u{001B}\\after"
+        let incompleteOSC = "before\u{001B}]\(combiningPayload)"
+        let incompleteDCS = "before\u{001B}P\(combiningPayload)"
+
+        #expect(stripANSI(completeOSC) == "beforeafter")
+        #expect(stripANSI(completeDCS) == "beforeafter")
+        #expect(stripANSI(incompleteOSC) == "before")
+        #expect(stripANSI(incompleteDCS) == "before")
+        #expect(render(incompleteOSC, options: RenderOptions(color: true)) == "before")
+        #expect(render(incompleteDCS, options: RenderOptions(color: true)) == "before")
+    }
+
+    @Test
     func `scanner drops incomplete controls through end of input`() {
         let controls = [
             "\u{001B}]metadata",
@@ -190,6 +206,12 @@ struct ANSISequenceTests {
         #expect(stripANSI("before\u{001B}(\u{0018}visible") == "beforevisible")
         #expect(stripANSI("before\u{001B}(\u{001A}visible") == "beforevisible")
         #expect(stripANSI("before\u{001B}(\u{001B}[31mred\u{001B}[0mafter") == "beforeredafter")
+    }
+
+    @Test
+    func `ESC and CSI sequences continue across CRLF graphemes`() {
+        #expect(stripANSI("before\u{001B}(\r\nBafter") == "beforeafter")
+        #expect(stripANSI("before\u{001B}[31\r\nmred\u{001B}[0mafter") == "beforeredafter")
     }
 
     @Test

@@ -25,31 +25,34 @@ enum ANSISequenceScanResult {
 }
 
 func scanANSISequence(in text: String, from start: String.Index) -> ANSISequenceScanResult {
-    switch text[start] {
-    case "\u{001B}":
-        let introducer = text.index(after: start)
-        guard introducer < text.endIndex else { return .incomplete }
-        switch text[introducer] {
-        case "[":
-            return csiSequenceResult(in: text, from: text.index(after: introducer))
-        case "]", "P", "X", "^", "_":
+    let scalars = text.unicodeScalars
+    switch scalars[start].value {
+    case 0x1B:
+        let introducer = scalars.index(after: start)
+        guard introducer < scalars.endIndex else { return .incomplete }
+        let introducerValue = scalars[introducer].value
+        let payloadStart = scalars.index(after: introducer)
+        switch introducerValue {
+        case 0x5B:
+            return csiSequenceResult(in: text, from: payloadStart)
+        case 0x5D, 0x50, 0x58, 0x5E, 0x5F:
             return stringControlSequenceResult(
                 in: text,
-                from: text.index(after: introducer),
-                allowsBell: text[introducer] == "]")
+                from: payloadStart,
+                allowsBell: introducerValue == 0x5D)
         default:
-            if text[introducer].unicodeScalars.contains(where: isANSIControlIntroducer) {
-                return .complete(end: introducer)
+            if isANSIControlIntroducer(scalars[introducer]) {
+                return completedSequenceResult(in: text, controlEnd: introducer)
             }
             return escapeSequenceResult(in: text, from: introducer)
         }
-    case "\u{009B}":
-        return csiSequenceResult(in: text, from: text.index(after: start))
-    case "\u{0090}", "\u{0098}", "\u{009D}", "\u{009E}", "\u{009F}":
+    case 0x9B:
+        return csiSequenceResult(in: text, from: scalars.index(after: start))
+    case 0x90, 0x98, 0x9D, 0x9E, 0x9F:
         return stringControlSequenceResult(
             in: text,
-            from: text.index(after: start),
-            allowsBell: text[start] == "\u{009D}")
+            from: scalars.index(after: start),
+            allowsBell: scalars[start].value == 0x9D)
     default:
         return .notControl
     }
@@ -131,73 +134,36 @@ private func isANSIControlIntroducer(_ scalar: Unicode.Scalar) -> Bool {
 }
 
 private func escapeSequenceResult(in text: String, from start: String.Index) -> ANSISequenceScanResult {
+    let scalars = text.unicodeScalars
     var cursor = start
-    while cursor < text.endIndex {
-        let character = text[cursor]
-        let next = text.index(after: cursor)
-        guard character.unicodeScalars.count == 1,
-              let value = character.unicodeScalars.first?.value
-        else {
-            guard let value = character.unicodeScalars.first?.value else {
-                return .malformed(recovery: cursor)
-            }
-            let suffix = String(character.unicodeScalars.dropFirst())
-            switch value {
-            case 0x20...0x2F:
-                return .recovered(end: next, suffix: suffix)
-            case 0x30...0x7E:
-                return completedSequenceResult(in: text, finalAt: cursor, end: next)
-            case 0x18, 0x1A, 0x00...0x17, 0x19, 0x1C...0x1F, 0x7F:
-                return .recovered(end: next, suffix: suffix)
-            default:
-                return .malformed(recovery: cursor)
-            }
-        }
-
+    while cursor < scalars.endIndex {
+        let value = scalars[cursor].value
+        let next = scalars.index(after: cursor)
         switch value {
         case 0x20...0x2F:
             cursor = next
         case 0x30...0x7E:
-            return completedSequenceResult(in: text, finalAt: cursor, end: next)
+            return completedSequenceResult(in: text, controlEnd: next)
         case 0x18, 0x1A:
-            return .malformed(recovery: next)
+            return malformedSequenceResult(in: text, recovery: next)
         case 0x1B:
-            return .malformed(recovery: cursor)
+            return malformedSequenceResult(in: text, recovery: cursor)
         case 0x00...0x1F, 0x7F:
             cursor = next
         default:
-            return .malformed(recovery: cursor)
+            return malformedSequenceResult(in: text, recovery: cursor)
         }
     }
     return .incomplete
 }
 
 private func csiSequenceResult(in text: String, from start: String.Index) -> ANSISequenceScanResult {
+    let scalars = text.unicodeScalars
     var cursor = start
     var acceptsParameters = true
-    while cursor < text.endIndex {
-        let character = text[cursor]
-        let next = text.index(after: cursor)
-        guard character.unicodeScalars.count == 1,
-              let value = character.unicodeScalars.first?.value
-        else {
-            guard let value = character.unicodeScalars.first?.value else {
-                return .malformed(recovery: cursor)
-            }
-            let suffix = String(character.unicodeScalars.dropFirst())
-            switch value {
-            case 0x30...0x3F where acceptsParameters,
-                 0x20...0x2F,
-                 0x00...0x1F,
-                 0x7F:
-                return .recovered(end: next, suffix: suffix)
-            case 0x40...0x7E:
-                return completedSequenceResult(in: text, finalAt: cursor, end: next)
-            default:
-                return .malformed(recovery: cursor)
-            }
-        }
-
+    while cursor < scalars.endIndex {
+        let value = scalars[cursor].value
+        let next = scalars.index(after: cursor)
         switch value {
         case 0x30...0x3F where acceptsParameters:
             cursor = next
@@ -205,15 +171,15 @@ private func csiSequenceResult(in text: String, from start: String.Index) -> ANS
             acceptsParameters = false
             cursor = next
         case 0x40...0x7E:
-            return completedSequenceResult(in: text, finalAt: cursor, end: next)
+            return completedSequenceResult(in: text, controlEnd: next)
         case 0x18, 0x1A:
-            return .malformed(recovery: next)
+            return malformedSequenceResult(in: text, recovery: next)
         case 0x1B:
-            return .malformed(recovery: cursor)
+            return malformedSequenceResult(in: text, recovery: cursor)
         case 0x00...0x1F, 0x7F:
             cursor = next
         default:
-            return .malformed(recovery: cursor)
+            return malformedSequenceResult(in: text, recovery: cursor)
         }
     }
     return .incomplete
@@ -224,32 +190,28 @@ private func stringControlSequenceResult(
     from start: String.Index,
     allowsBell: Bool) -> ANSISequenceScanResult
 {
+    let scalars = text.unicodeScalars
     var cursor = start
-    while cursor < text.endIndex {
-        let character = text[cursor]
-        let next = text.index(after: cursor)
-        guard let value = character.unicodeScalars.first?.value else {
-            return .incomplete
-        }
+    while cursor < scalars.endIndex {
+        let value = scalars[cursor].value
+        let next = scalars.index(after: cursor)
         if value == 0x18 || value == 0x1A {
-            return .malformed(recovery: next)
+            return malformedSequenceResult(in: text, recovery: next)
         }
         if allowsBell, value == 0x07 {
-            return completedSequenceResult(in: text, finalAt: cursor, end: next)
+            return completedSequenceResult(in: text, controlEnd: next)
         }
         if value == 0x9C {
-            return completedSequenceResult(in: text, finalAt: cursor, end: next)
+            return completedSequenceResult(in: text, controlEnd: next)
         }
         if value == 0x1B {
-            guard next < text.endIndex else { return .malformed(recovery: cursor) }
-            let terminator = text[next]
-            guard terminator.unicodeScalars.first?.value == 0x5C else {
-                return .malformed(recovery: cursor)
+            guard next < scalars.endIndex else {
+                return malformedSequenceResult(in: text, recovery: cursor)
             }
-            return completedSequenceResult(
-                in: text,
-                finalAt: next,
-                end: text.index(after: next))
+            guard scalars[next].value == 0x5C else {
+                return malformedSequenceResult(in: text, recovery: cursor)
+            }
+            return completedSequenceResult(in: text, controlEnd: scalars.index(after: next))
         }
         cursor = next
     }
@@ -258,14 +220,32 @@ private func stringControlSequenceResult(
 
 private func completedSequenceResult(
     in text: String,
-    finalAt final: String.Index,
-    end: String.Index) -> ANSISequenceScanResult
+    controlEnd: String.Index) -> ANSISequenceScanResult
 {
-    let character = text[final]
-    guard character.unicodeScalars.count > 1 else {
-        return .complete(end: end)
+    guard controlEnd.samePosition(in: text) == nil else {
+        return .complete(end: controlEnd)
     }
-    let controlEnd = text.unicodeScalars.index(after: final)
-    let suffix = String(character.unicodeScalars.dropFirst())
+    let end = nextCharacterBoundary(in: text, after: controlEnd)
+    let suffix = String(text.unicodeScalars[controlEnd..<end])
     return .completeWithSuffix(end: end, controlEnd: controlEnd, suffix: suffix)
+}
+
+private func malformedSequenceResult(
+    in text: String,
+    recovery: String.Index) -> ANSISequenceScanResult
+{
+    guard recovery.samePosition(in: text) == nil else {
+        return .malformed(recovery: recovery)
+    }
+    let end = nextCharacterBoundary(in: text, after: recovery)
+    let suffix = String(text.unicodeScalars[recovery..<end])
+    return .recovered(end: end, suffix: suffix)
+}
+
+private func nextCharacterBoundary(in text: String, after position: String.Index) -> String.Index {
+    var cursor = position
+    while cursor < text.endIndex, cursor.samePosition(in: text) == nil {
+        cursor = text.unicodeScalars.index(after: cursor)
+    }
+    return cursor
 }
