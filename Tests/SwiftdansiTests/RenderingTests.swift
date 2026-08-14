@@ -39,6 +39,16 @@ struct ANSIRenderingSafetyTests {
 
         #expect(!stripANSI(output).contains("leaked"))
         #expect(!output.contains("missing original control"))
+
+        let incomplete = render(
+            "```\nsafe\u{001B}]private leaked\n```",
+            options: RenderOptions(
+                color: true,
+                codeBox: true,
+                codeGutter: true,
+                highlighter: { code, _ in "highlighted \(code)" }))
+        #expect(!stripANSI(incomplete).contains("leaked"))
+        #expect(!incomplete.contains("└"))
     }
 
     @Test
@@ -61,18 +71,21 @@ struct ANSIRenderingSafetyTests {
     @Test
     func `table truncation reserves width for a reclustering ellipsis`() {
         let variationSuffix = "\u{FE0F}"
-        let md = "| V |\n|---|\n| 1X |\n"
-        let out = render(
-            md,
-            options: RenderOptions(
-                wrap: true,
-                width: 3,
-                color: false,
-                tablePadding: 0,
-                tableTruncate: true,
-                tableEllipsis: variationSuffix))
+        let styledVariationSuffix = "\u{001B}[31m\(variationSuffix)\u{001B}[0m"
+        for ellipsis in [variationSuffix, styledVariationSuffix] {
+            let md = "| V |\n|---|\n| 1X |\n"
+            let out = render(
+                md,
+                options: RenderOptions(
+                    wrap: true,
+                    width: 3,
+                    color: true,
+                    tablePadding: 0,
+                    tableTruncate: true,
+                    tableEllipsis: ellipsis))
 
-        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 3 })
+            #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 3 })
+        }
     }
 }
 

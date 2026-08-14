@@ -122,14 +122,19 @@ struct ANSISequenceProtection {
     fileprivate let requiresPlainOutput: Bool
 
     func restoringSequences(in rendered: String) -> String {
-        let output = self.restoringProtectedSequences(in: rendered)
+        let output = self.decodingProtectedSequences(in: rendered).text
         if self.truncationToken != nil || self.requiresPlainOutput {
             return strippingANSISequences(output)
         }
         return output
     }
 
-    func restoringProtectedSequences(in rendered: String) -> String {
+    func restoringHighlighterInput(in rendered: String) -> (text: String, truncationToken: String?) {
+        let decoded = self.decodingProtectedSequences(in: rendered)
+        return (decoded.text, decoded.didTruncate ? self.truncationToken : nil)
+    }
+
+    private func decodingProtectedSequences(in rendered: String) -> (text: String, didTruncate: Bool) {
         var output = ""
         output.reserveCapacity(rendered.utf8.count)
         var cursor = rendered.startIndex
@@ -137,12 +142,12 @@ struct ANSISequenceProtection {
             switch scanANSISequence(in: rendered, from: cursor) {
             case let .complete(sequenceEnd):
                 let sequence = String(rendered[cursor..<sequenceEnd])
-                if sequence == self.truncationToken { return output }
+                if sequence == self.truncationToken { return (output, true) }
                 output.append(contentsOf: self.replacements[sequence] ?? sequence)
                 cursor = sequenceEnd
             case let .completeWithSuffix(sequenceEnd, controlEnd, suffix):
                 let sequence = String(rendered.unicodeScalars[cursor..<controlEnd])
-                if sequence == self.truncationToken { return output }
+                if sequence == self.truncationToken { return (output, true) }
                 output.append(contentsOf: self.replacements[sequence] ?? sequence)
                 output.append(contentsOf: suffix)
                 cursor = sequenceEnd
@@ -154,13 +159,13 @@ struct ANSISequenceProtection {
                 cursor = recovery
             case .incomplete:
                 output.append(contentsOf: rendered[cursor...])
-                return output
+                return (output, false)
             case .notControl:
                 output.append(rendered[cursor])
                 cursor = rendered.index(after: cursor)
             }
         }
-        return output
+        return (output, false)
     }
 
     func originalSequence(for token: Substring) -> String? {

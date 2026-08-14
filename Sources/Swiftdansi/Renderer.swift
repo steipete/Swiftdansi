@@ -280,8 +280,9 @@ private func renderCodeBlock(_ code: CodeBlock, ctx: RenderContext) -> [String] 
         return wrapped.enumerated().map { segIdx, segment in
             let highlighted: String
             if let highlighter = ctx.options.highlighter {
-                let originalSegment = ctx.ansiProtection.restoringProtectedSequences(in: segment)
-                highlighted = preservingCompleteANSISequences(highlighter(originalSegment, lang))
+                let restored = ctx.ansiProtection.restoringHighlighterInput(in: segment)
+                highlighted = preservingCompleteANSISequences(highlighter(restored.text, lang)) +
+                    (restored.truncationToken ?? "")
             } else {
                 highlighted = ctx.styler.apply(
                     segment,
@@ -519,7 +520,8 @@ private func truncateCell(
 }
 
 private func ellipsisCanReclusterWithPrevious(_ ellipsis: String) -> Bool {
-    guard let scalar = ellipsis.unicodeScalars.first else { return false }
+    let visibleEllipsis = stripANSI(ellipsis)
+    guard let scalar = visibleEllipsis.unicodeScalars.first else { return false }
     return scalar.properties.isGraphemeExtend ||
         scalar.properties.isJoinControl ||
         scalar.properties.isEmojiModifier
