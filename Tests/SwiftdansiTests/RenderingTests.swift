@@ -265,7 +265,7 @@ struct RenderingTests {
                 tableTruncate: true,
                 tableEllipsis: ""))
         let body = out.split(separator: "\n").first(where: { line in
-            line.unicodeScalars.contains("\u{20E3}")
+            containsScalarSequence(open, in: String(line))
         }).map(String.init)
 
         let expectedStyledKeycap = "\(open)1\(close)\(keycapSuffix)"
@@ -347,6 +347,31 @@ struct RenderingTests {
 
         #expect(body.map { containsScalarSequence(combinedClose, in: $0) } == true)
         #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
+    }
+
+    @Test
+    func `table truncation balances OSC canceled at recovered end`() {
+        let open = "\u{001B}]8;;https://example.com\u{001B}\\"
+        let closePrefix = "\u{001B}]8;;"
+        let keycapSuffix = "\u{FE0F}\u{20E3}"
+        let expectedClose = "\u{001B}]8;;\u{001B}\\"
+        let md = "| V |\n|---|\n| \(open)1\(closePrefix)\u{0018}\(keycapSuffix) |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 3,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true,
+                tableEllipsis: ""))
+        let body = out.split(separator: "\n").first(where: { line in
+            containsScalarSequence("1", in: stripANSI(String(line)))
+        }).map(String.init)
+
+        #expect(body.map { containsScalarSequence(expectedClose, in: $0) } == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 3 })
     }
 
     @Test

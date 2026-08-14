@@ -215,6 +215,28 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `ESC state dispatches C1 controls after embedded C0 and DEL`() {
+        let csi = "before\u{001B}\u{0000}[31mred\u{001B}[0mafter"
+        let osc = "before\u{001B}\u{007F}]private\u{0007}visible"
+        let generic = "before\u{001B}(\u{0000}[after"
+
+        #expect(stripANSI(csi) == "beforeredafter")
+        #expect(stripANSI(osc) == "beforevisible")
+        #expect(stripANSI(generic) == "beforeafter")
+    }
+
+    @Test
+    func `C1 introducers interrupt string controls and are rescanned`() {
+        let csi = "before\u{001B}Ppayload\u{009B}31mred\u{009B}0mafter"
+        let osc = "before\u{001B}Ppayload\u{009D}private\u{0007}visible"
+        let dcs = "before\u{001B}]payload\u{0090}private\u{009C}visible"
+
+        #expect(stripANSI(csi) == "beforeredafter")
+        #expect(stripANSI(osc) == "beforevisible")
+        #expect(stripANSI(dcs) == "beforevisible")
+    }
+
+    @Test
     func `colored renderer degrades malformed control output to a plain safe prefix`() {
         let controls = [
             "\u{001B}]private",

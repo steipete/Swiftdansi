@@ -30,22 +30,7 @@ func scanANSISequence(in text: String, from start: String.Index) -> ANSISequence
     case 0x1B:
         let introducer = scalars.index(after: start)
         guard introducer < scalars.endIndex else { return .incomplete }
-        let introducerValue = scalars[introducer].value
-        let payloadStart = scalars.index(after: introducer)
-        switch introducerValue {
-        case 0x5B:
-            return csiSequenceResult(in: text, from: payloadStart)
-        case 0x5D, 0x50, 0x58, 0x5E, 0x5F:
-            return stringControlSequenceResult(
-                in: text,
-                from: payloadStart,
-                allowsBell: introducerValue == 0x5D)
-        default:
-            if isANSIControlIntroducer(scalars[introducer]) {
-                return completedSequenceResult(in: text, controlEnd: introducer)
-            }
-            return escapeSequenceResult(in: text, from: introducer)
-        }
+        return escapeSequenceResult(in: text, from: introducer)
     case 0x9B:
         return csiSequenceResult(in: text, from: scalars.index(after: start))
     case 0x90, 0x98, 0x9D, 0x9E, 0x9F:
@@ -136,20 +121,35 @@ private func isANSIControlIntroducer(_ scalar: Unicode.Scalar) -> Bool {
 private func escapeSequenceResult(in text: String, from start: String.Index) -> ANSISequenceScanResult {
     let scalars = text.unicodeScalars
     var cursor = start
+    var hasIntermediate = false
     while cursor < scalars.endIndex {
         let value = scalars[cursor].value
         let next = scalars.index(after: cursor)
+        if !hasIntermediate {
+            switch value {
+            case 0x5B:
+                return csiSequenceResult(in: text, from: next)
+            case 0x5D, 0x50, 0x58, 0x5E, 0x5F:
+                return stringControlSequenceResult(
+                    in: text,
+                    from: next,
+                    allowsBell: value == 0x5D)
+            default:
+                break
+            }
+        }
         switch value {
-        case 0x20...0x2F:
-            cursor = next
-        case 0x30...0x7E:
-            return completedSequenceResult(in: text, controlEnd: next)
         case 0x18, 0x1A:
             return malformedSequenceResult(in: text, recovery: next)
         case 0x1B:
             return malformedSequenceResult(in: text, recovery: cursor)
         case 0x00...0x1F, 0x7F:
             cursor = next
+        case 0x20...0x2F:
+            hasIntermediate = true
+            cursor = next
+        case 0x30...0x7E:
+            return completedSequenceResult(in: text, controlEnd: next)
         default:
             return malformedSequenceResult(in: text, recovery: cursor)
         }
@@ -212,6 +212,9 @@ private func stringControlSequenceResult(
                 return malformedSequenceResult(in: text, recovery: cursor)
             }
             return completedSequenceResult(in: text, controlEnd: scalars.index(after: next))
+        }
+        if value == 0x90 || value == 0x98 || value == 0x9B || value == 0x9D || value == 0x9E || value == 0x9F {
+            return malformedSequenceResult(in: text, recovery: cursor)
         }
         cursor = next
     }

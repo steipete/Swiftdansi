@@ -492,7 +492,6 @@ private func truncateCell(_ text: String, width: Int, ellipsis: String) -> Strin
 
 private func sliceCellContent(_ text: String, width: Int) -> String {
     var result = ""
-    var resultWidth = 0
     var cursor = text.startIndex
     var hasActiveSGR = false
     var activeHyperlinkTerminator: ANSIOSCTerminator?
@@ -515,7 +514,6 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
             let candidateWidth = visibleWidth(candidate)
             guard candidateWidth <= max(0, width) else { break scan }
             result = candidate
-            resultWidth = candidateWidth
             updateANSIState(
                 sequence[...],
                 hasActiveSGR: &hasActiveSGR,
@@ -527,7 +525,6 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
             let candidateWidth = visibleWidth(candidate)
             guard candidateWidth <= max(0, width) else { break scan }
             result = candidate
-            resultWidth = candidateWidth
             cursor = sequenceEnd
             continue
         case let .malformed(recovery):
@@ -543,14 +540,18 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
 
         let next = text.index(after: cursor)
         let grapheme = String(text[cursor..<next])
-        let graphemeWidth = visibleWidth(grapheme)
-        guard resultWidth + graphemeWidth <= max(0, width) else { break }
-        result.append(contentsOf: grapheme)
-        resultWidth += graphemeWidth
+        let candidate = result + grapheme
+        let candidateWidth = visibleWidth(candidate)
+        guard candidateWidth <= max(0, width) else { break }
+        result = candidate
         cursor = next
     }
 
-    guard cursor < text.endIndex || discardedIncompleteControl else { return result }
+    guard cursor < text.endIndex ||
+        discardedIncompleteControl ||
+        hasActiveSGR ||
+        activeHyperlinkTerminator != nil
+    else { return result }
     if hasActiveSGR {
         result.append("\u{001B}[0m")
     }
