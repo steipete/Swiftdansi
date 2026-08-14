@@ -18,6 +18,7 @@ enum ANSIOSCTerminator {
 enum ANSISequenceScanResult {
     case notControl
     case complete(end: String.Index)
+    case malformed(recovery: String.Index)
     case incomplete
 }
 
@@ -28,7 +29,7 @@ func scanANSISequence(in text: String, from start: String.Index) -> ANSISequence
         guard introducer < text.endIndex else { return .incomplete }
         switch text[introducer] {
         case "[":
-            return scanResult(csiSequenceEnd(in: text, from: text.index(after: introducer)))
+            return csiSequenceResult(in: text, from: text.index(after: introducer))
         case "]", "P", "X", "^", "_":
             return scanResult(stringControlSequenceEnd(
                 in: text,
@@ -38,10 +39,10 @@ func scanANSISequence(in text: String, from start: String.Index) -> ANSISequence
             if text[introducer].unicodeScalars.contains(where: isANSIControlIntroducer) {
                 return .complete(end: introducer)
             }
-            return scanResult(escapeSequenceEnd(in: text, from: introducer))
+            return escapeSequenceResult(in: text, from: introducer)
         }
     case "\u{009B}":
-        return scanResult(csiSequenceEnd(in: text, from: text.index(after: start)))
+        return csiSequenceResult(in: text, from: text.index(after: start))
     case "\u{0090}", "\u{0098}", "\u{009D}", "\u{009E}", "\u{009F}":
         return scanResult(stringControlSequenceEnd(
             in: text,
@@ -81,6 +82,8 @@ func strippingANSISequences(_ text: String) -> String {
         switch scanANSISequence(in: text, from: cursor) {
         case let .complete(sequenceEnd):
             cursor = sequenceEnd
+        case let .malformed(recovery):
+            cursor = recovery
         case .incomplete:
             return result
         case .notControl:
@@ -101,9 +104,8 @@ func preservingCompleteANSISequences(_ text: String) -> String {
         switch scanANSISequence(in: text, from: cursor) {
         case let .complete(sequenceEnd):
             cursor = sequenceEnd
-        case .incomplete:
-            // A terminal treats the remaining bytes as private control payload. Degrade the
-            // entire safe prefix to plain text so generated styles cannot remain open.
+        case .malformed, .incomplete:
+            // Never emit a malformed control prefix or leave generated styles open.
             return strippingANSISequences(text)
         case .notControl:
             cursor = text.index(after: cursor)
@@ -121,7 +123,7 @@ private func isANSIControlIntroducer(_ scalar: Unicode.Scalar) -> Bool {
     }
 }
 
-private func escapeSequenceEnd(in text: String, from start: String.Index) -> String.Index? {
+private func escapeSequenceResult(in text: String, from start: String.Index) -> ANSISequenceScanResult {
     var cursor = start
     while cursor < text.endIndex {
         let character = text[cursor]
@@ -129,35 +131,52 @@ private func escapeSequenceEnd(in text: String, from start: String.Index) -> Str
         guard character.unicodeScalars.count == 1,
               let value = character.unicodeScalars.first?.value
         else {
-            return nil
+            return .malformed(recovery: cursor)
         }
 
         switch value {
         case 0x20...0x2F:
             cursor = next
         case 0x30...0x7E:
-            return next
+            return .complete(end: next)
         default:
-            return nil
+            return .malformed(recovery: cursor)
         }
     }
-    return nil
+    return .incomplete
 }
 
-private func csiSequenceEnd(in text: String, from start: String.Index) -> String.Index? {
+private func csiSequenceResult(in text: String, from start: String.Index) -> ANSISequenceScanResult {
     var cursor = start
+    var acceptsParameters = true
     while cursor < text.endIndex {
         let character = text[cursor]
         let next = text.index(after: cursor)
-        if character.unicodeScalars.count == 1,
-           let value = character.unicodeScalars.first?.value,
-           (0x40...0x7E).contains(value)
-        {
-            return next
+        guard character.unicodeScalars.count == 1,
+              let value = character.unicodeScalars.first?.value
+        else {
+            return .malformed(recovery: cursor)
         }
-        cursor = next
+
+        switch value {
+        case 0x30...0x3F where acceptsParameters:
+            cursor = next
+        case 0x20...0x2F:
+            acceptsParameters = false
+            cursor = next
+        case 0x40...0x7E:
+            return .complete(end: next)
+        case 0x18, 0x1A:
+            return .malformed(recovery: next)
+        case 0x1B:
+            return .malformed(recovery: cursor)
+        case 0x00...0x1F, 0x7F:
+            cursor = next
+        default:
+            return .malformed(recovery: cursor)
+        }
     }
-    return nil
+    return .incomplete
 }
 
 private func stringControlSequenceEnd(

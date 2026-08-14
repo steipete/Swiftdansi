@@ -55,6 +55,23 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `scanner preserves visible suffixes after malformed bounded controls`() {
+        let values = [
+            "before\u{001B}(💥after",
+            "before\u{001B} !💥after",
+            "before\u{001B}[31💥after",
+            "before\u{009B}31💥after",
+        ]
+
+        for value in values {
+            #expect(stripANSI(value) == "before💥after")
+            #expect(visibleWidth(value) == visibleWidth("before💥after"))
+        }
+
+        #expect(stripANSI("before\u{001B}[1 2after") == "before2after")
+    }
+
+    @Test
     func `scanner drops incomplete controls through end of input`() {
         let controls = [
             "\u{001B}]metadata",
@@ -120,5 +137,11 @@ struct ANSISequenceTests {
             #expect(output == "visible")
             #expect(!output.unicodeScalars.contains("\u{001B}"))
         }
+
+        let malformedEscape = render(
+            "before\u{001B}(💥after",
+            options: RenderOptions(color: true))
+        #expect(malformedEscape == "before💥after\n")
+        #expect(!malformedEscape.unicodeScalars.contains("\u{001B}"))
     }
 }
