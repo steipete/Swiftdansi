@@ -509,11 +509,25 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
                 activeHyperlinkTerminator: &activeHyperlinkTerminator)
             cursor = sequenceEnd
             continue
+        case let .completeWithSuffix(sequenceEnd, controlEnd, suffix):
+            let sequence = String(text.unicodeScalars[cursor..<controlEnd])
+            let candidate = result + sequence + suffix
+            let candidateWidth = visibleWidth(candidate)
+            guard candidateWidth <= max(0, width) else { break scan }
+            result = candidate
+            resultWidth = candidateWidth
+            updateANSIState(
+                sequence[...],
+                hasActiveSGR: &hasActiveSGR,
+                activeHyperlinkTerminator: &activeHyperlinkTerminator)
+            cursor = sequenceEnd
+            continue
         case let .recovered(sequenceEnd, suffix):
-            let suffixWidth = visibleWidth(suffix)
-            guard resultWidth + suffixWidth <= max(0, width) else { break scan }
-            result.append(contentsOf: suffix)
-            resultWidth += suffixWidth
+            let candidate = result + suffix
+            let candidateWidth = visibleWidth(candidate)
+            guard candidateWidth <= max(0, width) else { break scan }
+            result = candidate
+            resultWidth = candidateWidth
             cursor = sequenceEnd
             continue
         case let .malformed(recovery):

@@ -183,7 +183,6 @@ struct ANSISequenceTests {
         let combinedEscape = render(
             "before\u{001B}7\u{0301}after",
             options: RenderOptions(color: true))
-        #expect(combinedEscape == "before\u{0301}after\n")
-        #expect(!combinedEscape.unicodeScalars.contains("\u{001B}"))
+        #expect(combinedEscape == "before\u{001B}7\u{0301}after\n")
     }
 }
