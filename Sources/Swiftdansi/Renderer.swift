@@ -509,6 +509,9 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
                 activeHyperlinkTerminator: &activeHyperlinkTerminator)
             cursor = sequenceEnd
             continue
+        case let .malformed(recovery):
+            cursor = recovery
+            continue
         case .incomplete:
             discardedIncompleteControl = true
             cursor = text.endIndex
