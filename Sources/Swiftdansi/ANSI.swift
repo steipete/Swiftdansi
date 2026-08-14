@@ -1,3 +1,5 @@
+import Foundation
+
 enum ANSIOSCTerminator {
     case bell
     case stringTerminator
@@ -33,6 +35,8 @@ func scanANSISequence(in text: String, from start: String.Index) -> ANSISequence
         return escapeSequenceResult(in: text, from: introducer)
     case 0x9B:
         return csiSequenceResult(in: text, from: scalars.index(after: start))
+    case 0x9C:
+        return completedSequenceResult(in: text, controlEnd: scalars.index(after: start))
     case 0x90, 0x98, 0x9D, 0x9E, 0x9F:
         return stringControlSequenceResult(
             in: text,
@@ -57,7 +61,7 @@ func ansiOSCTerminator(in sequence: Substring) -> ANSIOSCTerminator? {
 }
 
 func strippingANSISequences(_ text: String) -> String {
-    guard text.unicodeScalars.contains(where: isANSIControlIntroducer) else {
+    guard text.unicodeScalars.contains(where: isANSIControlScalar) else {
         return text
     }
 
@@ -87,7 +91,7 @@ func strippingANSISequences(_ text: String) -> String {
 }
 
 func preservingCompleteANSISequences(_ text: String) -> String {
-    guard text.unicodeScalars.contains(where: isANSIControlIntroducer) else {
+    guard text.unicodeScalars.contains(where: isANSIControlScalar) else {
         return text
     }
 
@@ -109,9 +113,132 @@ func preservingCompleteANSISequences(_ text: String) -> String {
     return text
 }
 
-private func isANSIControlIntroducer(_ scalar: Unicode.Scalar) -> Bool {
+struct ANSISequenceProtection {
+    let text: String
+    fileprivate let replacements: [String: String]
+    fileprivate let truncationToken: String?
+    fileprivate let requiresPlainOutput: Bool
+
+    func restoringSequences(in rendered: String) -> String {
+        let output = self.restoringProtectedSequences(in: rendered)
+        if self.truncationToken != nil || self.requiresPlainOutput {
+            return strippingANSISequences(output)
+        }
+        return output
+    }
+
+    func restoringProtectedSequences(in rendered: String) -> String {
+        var output = ""
+        output.reserveCapacity(rendered.utf8.count)
+        var cursor = rendered.startIndex
+        while cursor < rendered.endIndex {
+            switch scanANSISequence(in: rendered, from: cursor) {
+            case let .complete(sequenceEnd):
+                let sequence = String(rendered[cursor..<sequenceEnd])
+                if sequence == self.truncationToken { return output }
+                output.append(contentsOf: self.replacements[sequence] ?? sequence)
+                cursor = sequenceEnd
+            case let .completeWithSuffix(sequenceEnd, controlEnd, suffix):
+                let sequence = String(rendered.unicodeScalars[cursor..<controlEnd])
+                if sequence == self.truncationToken { return output }
+                output.append(contentsOf: self.replacements[sequence] ?? sequence)
+                output.append(contentsOf: suffix)
+                cursor = sequenceEnd
+            case let .recovered(sequenceEnd, _):
+                output.append(contentsOf: rendered[cursor..<sequenceEnd])
+                cursor = sequenceEnd
+            case let .malformed(recovery):
+                output.append(contentsOf: rendered[cursor..<recovery])
+                cursor = recovery
+            case .incomplete:
+                output.append(contentsOf: rendered[cursor...])
+                return output
+            case .notControl:
+                output.append(rendered[cursor])
+                cursor = rendered.index(after: cursor)
+            }
+        }
+        return output
+    }
+
+    func originalSequence(for token: Substring) -> String? {
+        self.replacements[String(token)]
+    }
+}
+
+func protectingANSISequences(_ text: String) -> ANSISequenceProtection {
+    guard text.unicodeScalars.contains(where: isANSIControlScalar) else {
+        return ANSISequenceProtection(
+            text: text,
+            replacements: [:],
+            truncationToken: nil,
+            requiresPlainOutput: false)
+    }
+
+    let marker = ansiProtectionMarker(absentFrom: text)
+    var protected = ""
+    protected.reserveCapacity(text.utf8.count)
+    var replacements: [String: String] = [:]
+    var requiresPlainOutput = false
+    var cursor = text.startIndex
+
+    func appendProtected(_ sequence: String) {
+        let token = ansiProtectionToken(marker: marker, index: replacements.count)
+        replacements[token] = sequence
+        protected.append(contentsOf: token)
+    }
+
+    while cursor < text.endIndex {
+        switch scanANSISequence(in: text, from: cursor) {
+        case let .complete(sequenceEnd):
+            appendProtected(String(text[cursor..<sequenceEnd]))
+            cursor = sequenceEnd
+        case let .completeWithSuffix(sequenceEnd, controlEnd, suffix):
+            appendProtected(String(text.unicodeScalars[cursor..<controlEnd]))
+            protected.append(contentsOf: suffix)
+            cursor = sequenceEnd
+        case let .recovered(sequenceEnd, suffix):
+            requiresPlainOutput = true
+            protected.append(contentsOf: suffix)
+            cursor = sequenceEnd
+        case let .malformed(recovery):
+            requiresPlainOutput = true
+            cursor = recovery
+        case .incomplete:
+            let token = ansiProtectionToken(marker: marker, index: replacements.count)
+            protected.append(contentsOf: token)
+            return ANSISequenceProtection(
+                text: protected,
+                replacements: replacements,
+                truncationToken: token,
+                requiresPlainOutput: true)
+        case .notControl:
+            protected.append(text[cursor])
+            cursor = text.index(after: cursor)
+        }
+    }
+    return ANSISequenceProtection(
+        text: protected,
+        replacements: replacements,
+        truncationToken: nil,
+        requiresPlainOutput: requiresPlainOutput)
+}
+
+private func ansiProtectionMarker(absentFrom text: String) -> String {
+    var marker = "swiftdansi-protected-\(UUID().uuidString)"
+    while text.contains(marker) {
+        marker = "swiftdansi-protected-\(UUID().uuidString)"
+    }
+    return marker
+}
+
+private func ansiProtectionToken(marker: String, index: Int) -> String {
+    "\u{001B}X\(marker)-\(index)\u{009C}"
+}
+
+private func isANSIControlScalar(_ scalar: Unicode.Scalar) -> Bool {
     switch scalar.value {
-    case 0x1B, 0x90, 0x98, 0x9B, 0x9D, 0x9E, 0x9F:
+    case 0x1B, 0x90, 0x98, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F:
         true
     default:
         false

@@ -26,19 +26,22 @@ public func strip(_ markdown: String, options: RenderOptions = RenderOptions()) 
 
 private func renderResolved(markdown: String, options: ResolvedOptions) -> String {
     let styler = Styler(enableColor: options.color)
-    let doc = parseDocument(dedent(markdown))
+    let protection = protectingANSISequences(markdown)
+    let doc = parseDocument(dedent(protection.text))
     let normalized = normalizeBlocks(Array(doc.blockChildren))
     let body = renderBlocks(
         normalized,
-        ctx: RenderContext(options: options, styler: styler),
+        ctx: RenderContext(options: options, styler: styler, ansiProtection: protection),
         indentLevel: 0,
         isTightList: false).joined()
-    return options.color ? preservingCompleteANSISequences(body) : stripANSI(body)
+    let restoredBody = protection.restoringSequences(in: body)
+    return options.color ? preservingCompleteANSISequences(restoredBody) : stripANSI(restoredBody)
 }
 
 private struct RenderContext {
     let options: ResolvedOptions
     let styler: Styler
+    let ansiProtection: ANSISequenceProtection
 }
 
 // MARK: - Block Rendering
@@ -275,9 +278,15 @@ private func renderCodeBlock(_ code: CodeBlock, ctx: RenderContext) -> [String] 
     let bodyLines: [String] = lines.enumerated().flatMap { idx, line in
         let wrapped = wrapCodeLine(line, width: wrapLimit)
         return wrapped.enumerated().map { segIdx, segment in
-            let highlighted = ctx.options.highlighter?(segment, lang) ?? ctx.styler.apply(
-                segment,
-                style: ctx.options.theme.blockCode ?? ctx.options.theme.code ?? ctx.options.theme.inlineCode)
+            let highlighted: String
+            if let highlighter = ctx.options.highlighter {
+                let originalSegment = ctx.ansiProtection.restoringProtectedSequences(in: segment)
+                highlighted = preservingCompleteANSISequences(highlighter(originalSegment, lang))
+            } else {
+                highlighted = ctx.styler.apply(
+                    segment,
+                    style: ctx.options.theme.blockCode ?? ctx.options.theme.code ?? ctx.options.theme.inlineCode)
+            }
             guard ctx.options.codeGutter else { return highlighted }
             let num = segIdx == 0 ? String(idx + 1).padding(
                 toLength: max(1, gutterWidth - 2),
@@ -358,7 +367,11 @@ private func renderTable(_ table: Table, ctx: RenderContext) -> [String] {
         let colLines: [[String]] = row.enumerated().map { idx, cell in
             let target = max(minContent, widths[idx] - pad * 2)
             let truncated: String = if ctx.options.tableTruncate, visibleWidth(cell) > target {
-                truncateCell(cell, width: target, ellipsis: ctx.options.tableEllipsis)
+                truncateCell(
+                    cell,
+                    width: target,
+                    ellipsis: ctx.options.tableEllipsis,
+                    ansiProtection: ctx.ansiProtection)
             } else {
                 cell
             }
@@ -483,15 +496,30 @@ private func wrapCodeLine(_ text: String, width: Int?) -> [String] {
     return out.isEmpty ? [""] : out
 }
 
-private func truncateCell(_ text: String, width: Int, ellipsis: String) -> String {
+private func truncateCell(
+    _ text: String,
+    width: Int,
+    ellipsis: String,
+    ansiProtection: ANSISequenceProtection) -> String
+{
     if visibleWidth(text) <= width { return text }
     let ellipsisWidth = visibleWidth(ellipsis)
-    if width <= ellipsisWidth { return sliceCellContent(ellipsis, width: width) }
-    return sliceCellContent(text, width: width - ellipsisWidth) + ellipsis
+    if width <= ellipsisWidth {
+        return sliceCellContent(ellipsis, width: width, ansiProtection: ansiProtection)
+    }
+    return sliceCellContent(
+        text,
+        width: width - ellipsisWidth,
+        ansiProtection: ansiProtection) + ellipsis
 }
 
-private func sliceCellContent(_ text: String, width: Int) -> String {
+private func sliceCellContent(
+    _ text: String,
+    width: Int,
+    ansiProtection: ANSISequenceProtection) -> String
+{
     var result = ""
+    var visibleWidthAccumulator = VisibleWidthAccumulator()
     var cursor = text.startIndex
     var hasActiveSGR = false
     var activeHyperlinkTerminator: ANSIOSCTerminator?
@@ -503,17 +531,16 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
             let sequence = text[cursor..<sequenceEnd]
             result.append(contentsOf: sequence)
             updateANSIState(
-                sequence,
+                ansiProtection.originalSequence(for: sequence)?[...] ?? sequence,
                 hasActiveSGR: &hasActiveSGR,
                 activeHyperlinkTerminator: &activeHyperlinkTerminator)
             cursor = sequenceEnd
             continue
         case let .completeWithSuffix(sequenceEnd, controlEnd, suffix):
             let sequence = String(text.unicodeScalars[cursor..<controlEnd])
-            let candidate = result + sequence + suffix
-            let candidateWidth = visibleWidth(candidate)
-            guard candidateWidth <= max(0, width) else { break scan }
-            result = candidate
+            guard visibleWidthAccumulator.append(suffix, maximum: max(0, width)) else { break scan }
+            result.append(contentsOf: sequence)
+            result.append(contentsOf: suffix)
             updateANSIState(
                 sequence[...],
                 hasActiveSGR: &hasActiveSGR,
@@ -521,10 +548,8 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
             cursor = sequenceEnd
             continue
         case let .recovered(sequenceEnd, suffix):
-            let candidate = result + suffix
-            let candidateWidth = visibleWidth(candidate)
-            guard candidateWidth <= max(0, width) else { break scan }
-            result = candidate
+            guard visibleWidthAccumulator.append(suffix, maximum: max(0, width)) else { break scan }
+            result.append(contentsOf: suffix)
             cursor = sequenceEnd
             continue
         case let .malformed(recovery):
@@ -540,10 +565,8 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
 
         let next = text.index(after: cursor)
         let grapheme = String(text[cursor..<next])
-        let candidate = result + grapheme
-        let candidateWidth = visibleWidth(candidate)
-        guard candidateWidth <= max(0, width) else { break }
-        result = candidate
+        guard visibleWidthAccumulator.append(grapheme, maximum: max(0, width)) else { break }
+        result.append(contentsOf: grapheme)
         cursor = next
     }
 
@@ -559,6 +582,97 @@ private func sliceCellContent(_ text: String, width: Int) -> String {
         result.append(activeHyperlinkTerminator.hyperlinkClose)
     }
     return result
+}
+
+private struct VisibleWidthAccumulator {
+    private static let representativeScalarLimit = 64
+    private static let representativePrefixCount = 16
+
+    private var prefixWidth = 0
+    private var trailingWidth = 0
+    private var trailingRepresentative = ""
+    private var usesConservativeBoundary = false
+
+    mutating func append(_ fragment: String, maximum: Int) -> Bool {
+        var candidate = self
+        for character in fragment {
+            guard candidate.appendCharacter(String(character), maximum: maximum) else { return false }
+        }
+        self = candidate
+        return true
+    }
+
+    private mutating func appendCharacter(_ character: String, maximum: Int) -> Bool {
+        guard !character.isEmpty else { return true }
+        if self.trailingRepresentative.isEmpty {
+            let representative = Self.boundedRepresentative(character)
+            let width = representative.isTruncated ? 2 : visibleWidth(character)
+            guard self.prefixWidth + width <= maximum else { return false }
+            self.trailingWidth = width
+            self.trailingRepresentative = representative.value
+            self.usesConservativeBoundary = representative.isTruncated
+            return true
+        }
+
+        if self.usesConservativeBoundary {
+            return self.appendConservativelySeparated(character, maximum: maximum)
+        }
+
+        let combined = self.trailingRepresentative + character
+        if combined.count == 1 {
+            let representative = Self.boundedRepresentative(combined)
+            let width = representative.isTruncated ? 2 : max(self.trailingWidth, visibleWidth(combined))
+            guard self.prefixWidth + width <= maximum else { return false }
+            self.trailingWidth = width
+            self.trailingRepresentative = representative.value
+            self.usesConservativeBoundary = representative.isTruncated
+        } else {
+            return self.appendConservativelySeparated(character, maximum: maximum)
+        }
+        return true
+    }
+
+    private mutating func appendConservativelySeparated(_ character: String, maximum: Int) -> Bool {
+        let representative = Self.boundedRepresentative(character)
+        let width = representative.isTruncated ? 2 : visibleWidth(character)
+        let prefixWidth = self.prefixWidth + self.trailingWidth
+        guard prefixWidth + width <= maximum else { return false }
+        self.prefixWidth = prefixWidth
+        self.trailingWidth = width
+        self.trailingRepresentative = representative.value
+        self.usesConservativeBoundary = representative.isTruncated
+        return true
+    }
+
+    private static func boundedRepresentative(_ value: String) -> (value: String, isTruncated: Bool) {
+        let suffixCount = Self.representativeScalarLimit - Self.representativePrefixCount
+        var scalarCount = 0
+        var prefix: [Unicode.Scalar] = []
+        prefix.reserveCapacity(Self.representativePrefixCount)
+        var suffix: [Unicode.Scalar] = []
+        suffix.reserveCapacity(suffixCount)
+        for scalar in value.unicodeScalars {
+            if scalarCount < Self.representativePrefixCount {
+                prefix.append(scalar)
+            }
+            if suffix.count == suffixCount {
+                suffix.removeFirst()
+            }
+            suffix.append(scalar)
+            scalarCount += 1
+        }
+        guard scalarCount > Self.representativeScalarLimit else { return (value, false) }
+
+        var result = ""
+        result.reserveCapacity(Self.representativeScalarLimit * 4)
+        for scalar in prefix {
+            result.unicodeScalars.append(scalar)
+        }
+        for scalar in suffix {
+            result.unicodeScalars.append(scalar)
+        }
+        return (result, true)
+    }
 }
 
 private func updateANSIState(

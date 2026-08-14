@@ -237,6 +237,12 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `standalone C1 ST is consumed after bounded recovery`() {
+        #expect(stripANSI("before\u{009C}after") == "beforeafter")
+        #expect(stripANSI("before\u{001B}[31\u{009C}after") == "beforeafter")
+    }
+
+    @Test
     func `colored renderer degrades malformed control output to a plain safe prefix`() {
         let controls = [
             "\u{001B}]private",
