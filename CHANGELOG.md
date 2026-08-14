@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## 0.3.1 — Unreleased
 
 ### Fixed
+- Protect raw Markdown and highlighter ANSI before generated styling, consume standalone ST, and keep table slicing linear while preserving Unicode re-clustering.
+- Parse ANSI state transitions at Unicode-scalar granularity, including combined and interrupted string introducers, combining-suffix ST, C1 rescans, and embedded C0/DEL/CRLF bytes.
 - Preserve recovered SGR state during table slicing and measure combining suffixes after re-clustering so truncated rows remain balanced and within width.
 - Honor CAN/SUB cancellation for control strings and strip two-byte ESC/CSI finals even when Swift groups them with a trailing combining mark.
 - Preserve visible suffixes after malformed bounded ESC and CSI controls while still dropping unterminated control-string payloads.

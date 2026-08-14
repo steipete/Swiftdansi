@@ -84,6 +84,35 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `scanner recognizes ST before a combining suffix`() {
+        let suffix = "\u{0301}visible"
+        let expected = "before\(suffix)"
+        let sevenBit = "before\u{001B}]payload\u{001B}\\\(suffix)"
+        let c1 = "before\u{009D}payload\u{009C}\(suffix)"
+
+        #expect(stripANSI(sevenBit) == expected)
+        #expect(stripANSI(c1) == expected)
+        #expect(visibleWidth(sevenBit) == visibleWidth(expected))
+        #expect(visibleWidth(c1) == visibleWidth(expected))
+    }
+
+    @Test
+    func `string control introducer accepts combining payload in the same grapheme`() {
+        let combiningPayload = "\u{0301}private"
+        let completeOSC = "before\u{001B}]\(combiningPayload)\u{0007}after"
+        let completeDCS = "before\u{001B}P\(combiningPayload)\u{001B}\\after"
+        let incompleteOSC = "before\u{001B}]\(combiningPayload)"
+        let incompleteDCS = "before\u{001B}P\(combiningPayload)"
+
+        #expect(stripANSI(completeOSC) == "beforeafter")
+        #expect(stripANSI(completeDCS) == "beforeafter")
+        #expect(stripANSI(incompleteOSC) == "before")
+        #expect(stripANSI(incompleteDCS) == "before")
+        #expect(render(incompleteOSC, options: RenderOptions(color: true)) == "before")
+        #expect(render(incompleteDCS, options: RenderOptions(color: true)) == "before")
+    }
+
+    @Test
     func `scanner drops incomplete controls through end of input`() {
         let controls = [
             "\u{001B}]metadata",
@@ -154,6 +183,75 @@ struct ANSISequenceTests {
     }
 
     @Test
+    func `non ST escape aborts string controls and is rescanned`() {
+        let sevenBitIntroducers = ["]", "P", "X", "^", "_"]
+        for introducer in sevenBitIntroducers {
+            let value = "before\u{001B}\(introducer)payload\u{001B}[31mred\u{001B}[0mafter"
+            #expect(stripANSI(value) == "beforeredafter")
+        }
+
+        let eightBitIntroducers = ["\u{0090}", "\u{0098}", "\u{009D}", "\u{009E}", "\u{009F}"]
+        for introducer in eightBitIntroducers {
+            let value = "before\(introducer)payload\u{001B}[31mred\u{001B}[0mafter"
+            #expect(stripANSI(value) == "beforeredafter")
+        }
+    }
+
+    @Test
+    func `ESC sequences execute C0 ignore DEL and honor state transitions`() {
+        for embedded in ["\u{0000}", "\u{0007}", "\u{007F}"] {
+            #expect(stripANSI("before\u{001B}(\(embedded)Bafter") == "beforeafter")
+        }
+
+        #expect(stripANSI("before\u{001B}(\u{0018}visible") == "beforevisible")
+        #expect(stripANSI("before\u{001B}(\u{001A}visible") == "beforevisible")
+        #expect(stripANSI("before\u{001B}(\u{001B}[31mred\u{001B}[0mafter") == "beforeredafter")
+    }
+
+    @Test
+    func `ESC and CSI sequences continue across CRLF graphemes`() {
+        #expect(stripANSI("before\u{001B}(\r\nBafter") == "beforeafter")
+        #expect(stripANSI("before\u{001B}[31\r\nmred\u{001B}[0mafter") == "beforeredafter")
+    }
+
+    @Test
+    func `ESC state dispatches C1 controls after embedded C0 and DEL`() {
+        let csi = "before\u{001B}\u{0000}[31mred\u{001B}[0mafter"
+        let osc = "before\u{001B}\u{007F}]private\u{0007}visible"
+        let generic = "before\u{001B}(\u{0000}[after"
+
+        #expect(stripANSI(csi) == "beforeredafter")
+        #expect(stripANSI(osc) == "beforevisible")
+        #expect(stripANSI(generic) == "beforeafter")
+    }
+
+    @Test
+    func `C1 introducers interrupt string controls and are rescanned`() {
+        let csi = "before\u{001B}Ppayload\u{009B}31mred\u{009B}0mafter"
+        let osc = "before\u{001B}Ppayload\u{009D}private\u{0007}visible"
+        let dcs = "before\u{001B}]payload\u{0090}private\u{009C}visible"
+
+        #expect(stripANSI(csi) == "beforeredafter")
+        #expect(stripANSI(osc) == "beforevisible")
+        #expect(stripANSI(dcs) == "beforevisible")
+    }
+
+    @Test
+    func `standalone C1 ST is consumed after bounded recovery`() {
+        #expect(stripANSI("before\u{009C}after") == "beforeafter")
+        #expect(stripANSI("before\u{001B}[31\u{009C}after") == "beforeafter")
+    }
+
+    @Test
+    func `fixed C1 controls match their seven bit equivalents`() {
+        let fixedControls: [UInt32] = Array(0x80...0x8F) + Array(0x91...0x97) + Array(0x99...0x9A)
+        for value in fixedControls {
+            let scalar = Unicode.Scalar(value).map(String.init) ?? ""
+            #expect(stripANSI("before\(scalar)after") == "beforeafter")
+        }
+    }
+
+    @Test
     func `colored renderer degrades malformed control output to a plain safe prefix`() {
         let controls = [
             "\u{001B}]private",
@@ -184,5 +282,15 @@ struct ANSISequenceTests {
             "before\u{001B}7\u{0301}after",
             options: RenderOptions(color: true))
         #expect(combinedEscape == "before\u{001B}7\u{0301}after\n")
+
+        let interruptedOSC = render(
+            "before\u{001B}]payload\u{001B}[31mred\u{001B}[0mafter",
+            options: RenderOptions(color: true))
+        #expect(interruptedOSC == "beforeredafter\n")
+
+        let combinedST = render(
+            "before\u{001B}]payload\u{001B}\\\u{0301}visible",
+            options: RenderOptions(color: true))
+        #expect(stripANSI(combinedST) == "before\u{0301}visible\n")
     }
 }

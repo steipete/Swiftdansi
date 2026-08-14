@@ -3,6 +3,92 @@ import Testing
 @testable import Swiftdansi
 @testable import SwiftdansiCLI
 
+private func containsScalarSequence(_ needle: String, in haystack: String) -> Bool {
+    let values = haystack.unicodeScalars.map(\.value)
+    let target = needle.unicodeScalars.map(\.value)
+    guard !target.isEmpty, target.count <= values.count else { return false }
+    return (0...(values.count - target.count)).contains { start in
+        values[start..<(start + target.count)].elementsEqual(target)
+    }
+}
+
+struct ANSIRenderingSafetyTests {
+    @Test
+    func `renderer protects raw control strings before generating styles`() {
+        let incomplete = render("*safe\u{001B}]private* leaked", options: RenderOptions(color: true))
+        #expect(!stripANSI(incomplete).contains("leaked"))
+
+        let rawOSC = "\u{001B}]private *hidden*\u{0007}"
+        let complete = render("before \(rawOSC) after", options: RenderOptions(color: true))
+        #expect(stripANSI(complete).trimmingCharacters(in: .whitespacesAndNewlines) == "before  after")
+        #expect(containsScalarSequence(rawOSC, in: complete))
+    }
+
+    @Test
+    func `renderer validates custom highlighter output before composition`() {
+        let rawOSC = "\u{001B}]private\u{0007}"
+        let output = render(
+            "```\nvalue\(rawOSC)\n```",
+            options: RenderOptions(
+                color: true,
+                codeBox: true,
+                codeGutter: true,
+                highlighter: { code, _ in
+                    code.contains(rawOSC) ? "safe\u{001B}]private leaked" : "missing original control"
+                }))
+
+        #expect(!stripANSI(output).contains("leaked"))
+        #expect(!output.contains("missing original control"))
+
+        let incomplete = render(
+            "```\nsafe\u{001B}]private leaked\n```",
+            options: RenderOptions(
+                color: true,
+                codeBox: true,
+                codeGutter: true,
+                highlighter: { code, _ in "highlighted \(code)" }))
+        #expect(!stripANSI(incomplete).contains("leaked"))
+        #expect(!incomplete.contains("└"))
+    }
+
+    @Test
+    func `table truncation handles long control separated combining suffixes`() {
+        let suffixes = String(repeating: "\u{001B}[0m\u{0301}", count: 2000)
+        let md = "| V |\n|---|\n| 1\(suffixes)XYZ |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 4,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true,
+                tableEllipsis: ""))
+
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 4 })
+    }
+
+    @Test
+    func `table truncation reserves width for a reclustering ellipsis`() {
+        let variationSuffix = "\u{FE0F}"
+        let styledVariationSuffix = "\u{001B}[31m\(variationSuffix)\u{001B}[0m"
+        for ellipsis in [variationSuffix, styledVariationSuffix] {
+            let md = "| V |\n|---|\n| 1X |\n"
+            let out = render(
+                md,
+                options: RenderOptions(
+                    wrap: true,
+                    width: 3,
+                    color: true,
+                    tablePadding: 0,
+                    tableTruncate: true,
+                    tableEllipsis: ellipsis))
+
+            #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 3 })
+        }
+    }
+}
+
 struct RenderingTests {
     @Test
     func `inline formatting`() {
@@ -256,7 +342,7 @@ struct RenderingTests {
                 tableTruncate: true,
                 tableEllipsis: ""))
         let body = out.split(separator: "\n").first(where: { line in
-            line.unicodeScalars.contains("\u{20E3}")
+            containsScalarSequence(open, in: String(line))
         }).map(String.init)
 
         let expectedStyledKeycap = "\(open)1\(close)\(keycapSuffix)"
@@ -315,6 +401,49 @@ struct RenderingTests {
         let plain = strip(md, options: RenderOptions(wrap: true, width: 24, tablePadding: 0))
         #expect(plain.contains("avery"))
         #expect(!plain.contains("\u{001B}"))
+    }
+
+    @Test
+    func `table truncation recognizes ST with a combining suffix`() {
+        let open = "\u{001B}]8;;https://example.com\u{001B}\\"
+        let close = "\u{001B}]8;;\u{001B}\\"
+        let combinedClose = close + "\u{0301}"
+        let md = "| Link |\n|---|\n| \(open)linked\(combinedClose) trailingcontentthatexceeds |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 24,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { line in
+            containsScalarSequence("linked", in: stripANSI(String(line)))
+        }).map(String.init)
+
+        #expect(body.map { containsScalarSequence(combinedClose, in: $0) } == true)
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 24 })
+    }
+
+    @Test
+    func `table truncation balances OSC canceled at recovered end`() {
+        let open = "\u{001B}]8;;https://example.com\u{001B}\\"
+        let closePrefix = "\u{001B}]8;;"
+        let keycapSuffix = "\u{FE0F}\u{20E3}"
+        let md = "| V |\n|---|\n| \(open)1\(closePrefix)\u{0018}\(keycapSuffix) |\n"
+        let out = render(
+            md,
+            options: RenderOptions(
+                wrap: true,
+                width: 3,
+                hyperlinks: false,
+                color: true,
+                tablePadding: 0,
+                tableTruncate: true,
+                tableEllipsis: ""))
+        #expect(!out.unicodeScalars.contains("\u{001B}"))
+        #expect(out.split(separator: "\n").allSatisfy { visibleWidth(String($0)) <= 3 })
     }
 
     @Test
