@@ -1,6 +1,6 @@
 services:
   devcontainer:
-    image: "swift:6.3.2-noble@sha256:c4336909a71b2e69b884f4078cdf98c0cd081911632cb349ef72abc4cbed69fc"
+    image: "swift:6.3.3-noble@sha256:56ef1be2c1ca36f4c52440357dc1fcdfdb5e113587134fcadeef57c225c71b54"
     working_dir: ${WORKSPACE_DIR}
     env_file:
       - .env
