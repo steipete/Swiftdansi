@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## 0.3.1 — Unreleased
 
+### Changed
+- Refresh the pnpm toolchain to 11.24.0, the pinned Linux development container to Swift 6.3.3, and its Git feature lock to 1.3.8.
+
 ### Fixed
+- Keep the demo package's local dependency resolvable when the checkout directory is not named `Swiftdansi`.
 - Protect raw Markdown and highlighter ANSI before generated styling, consume standalone ST, and keep table slicing linear while preserving Unicode re-clustering.
 - Parse ANSI state transitions at Unicode-scalar granularity, including combined and interrupted string introducers, combining-suffix ST, C1 rescans, and embedded C0/DEL/CRLF bytes.
 - Preserve recovered SGR state during table slicing and measure combining suffixes after re-clustering so truncated rows remain balanced and within width.
