@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 ## 0.3.1 — Unreleased
 
 ### Changed
-- Refresh the pnpm toolchain to 11.24.0, the pinned Linux development container to Swift 6.3.3, and its Git feature lock to 1.3.8.
+- Refresh the pnpm toolchain to 11.25.0, the pinned Linux development container to Swift 6.3.3, and its Git feature lock to 1.3.8.
+- Apply current SwiftFormat rules to the Markdown indentation helper.
 
 ### Fixed
 - Keep the demo package's local dependency resolvable when the checkout directory is not named `Swiftdansi`.
