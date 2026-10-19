@@ -339,10 +339,7 @@ private func stringControlSequenceResult(
             return completedSequenceResult(in: text, controlEnd: next)
         }
         if value == 0x1B {
-            guard next < scalars.endIndex else {
-                return malformedSequenceResult(in: text, recovery: cursor)
-            }
-            guard scalars[next].value == 0x5C else {
+            guard next < scalars.endIndex, scalars[next].value == 0x5C else {
                 return malformedSequenceResult(in: text, recovery: cursor)
             }
             return completedSequenceResult(in: text, controlEnd: scalars.index(after: next))

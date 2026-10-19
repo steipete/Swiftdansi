@@ -12,28 +12,17 @@ jobs:
       matrix:
         include:
           - name: macOS
-            os: macos-latest
+            os: xcode-27
           - name: Ubuntu
             os: ubuntu-latest
     runs-on: ${{ matrix.os }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
     steps:
       - uses: actions/checkout@v7
-      - name: Select Xcode
+      - name: Show Xcode toolchain
         if: matrix.name == 'macOS'
         run: |
-          set -euo pipefail
-          for candidate in \
-            /Applications/Xcode_26.1.app \
-            /Applications/Xcode_26.0.app \
-            /Applications/Xcode_16.4.app \
-            /Applications/Xcode_16.3.app \
-            /Applications/Xcode.app; do
-            if [[ -d "$candidate" ]]; then
-              echo "Selecting $candidate"
-              sudo xcode-select -s "$candidate/Contents/Developer"
-              break
-            fi
-          done
           xcodebuild -version
           swift --version
       - name: Install tools

@@ -75,6 +75,8 @@ Swiftdansi is a Swift port of [Markdansi](https://github.com/steipete/Markdansi)
 
 ## Development
 
+macOS CI and release verification use the default Xcode 27 toolchain on the Apple silicon `xcode-27` runner while preserving the macOS 14 deployment target. Linux keeps its separate development-container toolchain.
+
 ```sh
 swift build
 swift test
