@@ -187,6 +187,17 @@ struct RenderingTests {
     }
 
     @Test
+    func `wrapped blockquote keeps bold on the next line`() {
+        let out = render(
+            "> Hello **bold words**",
+            options: RenderOptions(wrap: true, width: 17, color: true))
+        let lines = out.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let second = lines.first(where: { stripANSI($0).contains("words") }) ?? ""
+        #expect(second.contains("\u{001B}[1mwords"))
+        #expect(stripANSI(second).contains("words"))
+    }
+
+    @Test
     func `blockquote prefix`() {
         let out = strip("> quoted line", options: RenderOptions())
         #expect(out.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("│ "))

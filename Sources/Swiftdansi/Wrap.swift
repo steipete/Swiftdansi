@@ -66,7 +66,69 @@ public func wrapText(_ text: String, width: Int, wrap: Bool) -> [String] {
     }
     if !current.isEmpty { lines.append(trimEndSpaces(current)) }
     if lines.isEmpty { lines.append("") }
-    return lines
+    return balanceWrappedSGR(lines)
+}
+
+private func balanceWrappedSGR(_ lines: [String]) -> [String] {
+    var carry = ""
+    var balanced: [String] = []
+    balanced.reserveCapacity(lines.count)
+    for line in lines {
+        let opened = carry.isEmpty ? line : carry + line
+        let next = sgrCarry(in: opened)
+        if next.isEmpty {
+            balanced.append(opened)
+        } else {
+            balanced.append(opened + "\u{001B}[0m")
+        }
+        carry = next
+    }
+    return balanced
+}
+
+private func sgrCarry(in text: String) -> String {
+    var carry = ""
+    for match in text.matches(of: /\u{001B}\[[0-9;]*m/) {
+        let sequence = String(match.output)
+        if sgrResetsAll(sequence) {
+            carry = ""
+        } else {
+            carry += sequence
+        }
+    }
+    return carry
+}
+
+private func sgrResetsAll(_ sequence: String) -> Bool {
+    guard sequence.hasPrefix("\u{001B}["), sequence.hasSuffix("m") else { return false }
+    let parameters = sequence.dropFirst(2).dropLast()
+    if parameters.isEmpty { return true }
+    let parts = parameters.split(separator: ";", omittingEmptySubsequences: false).map(String.init)
+    var index = 0
+    var active = false
+    var sawReset = false
+    while index < parts.count {
+        let parameter = parts[index]
+        if parameter.isEmpty || parameter == "0" {
+            active = false
+            sawReset = true
+            index += 1
+            continue
+        }
+        if parameter == "38" || parameter == "48" || parameter == "58" {
+            active = true
+            index += 1
+            guard index < parts.count else { break }
+            let mode = parts[index]
+            index += 1
+            let skip = mode == "2" ? 3 : mode == "5" ? 1 : 0
+            index += min(skip, max(0, parts.count - index))
+            continue
+        }
+        active = true
+        index += 1
+    }
+    return sawReset && !active
 }
 
 /// Wrap text accounting for a prefix width (e.g., quote marker).
