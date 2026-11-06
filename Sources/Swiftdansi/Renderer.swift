@@ -703,8 +703,31 @@ private func updateANSIState(
     }
     if sgrPrefixLength > 0, sequence.hasSuffix("m") {
         let parameters = sequence.dropFirst(sgrPrefixLength).dropLast()
-        for parameter in parameters.split(separator: ";", omittingEmptySubsequences: false) {
-            hasActiveSGR = parameter != "0" && !parameter.isEmpty
+        if parameters.isEmpty {
+            hasActiveSGR = false
+            return
+        }
+        let parts = parameters.split(separator: ";", omittingEmptySubsequences: false).map(String.init)
+        var index = 0
+        while index < parts.count {
+            let parameter = parts[index]
+            if parameter.isEmpty || parameter == "0" {
+                hasActiveSGR = false
+                index += 1
+                continue
+            }
+            if parameter == "38" || parameter == "48" || parameter == "58" {
+                hasActiveSGR = true
+                index += 1
+                guard index < parts.count else { break }
+                let mode = parts[index]
+                index += 1
+                let skip = mode == "2" ? 3 : mode == "5" ? 1 : 0
+                index += min(skip, parts.count - index)
+                continue
+            }
+            hasActiveSGR = true
+            index += 1
         }
         return
     }

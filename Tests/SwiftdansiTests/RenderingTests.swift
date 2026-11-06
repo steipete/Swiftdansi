@@ -309,6 +309,28 @@ struct RenderingTests {
     }
 
     @Test
+    func `table truncation closes truecolor whose last channel is zero`() {
+        let open = "\u{001B}[38;2;255;0;0m"
+        let md = """
+        | C |
+        | --- |
+        | \(open)redredredred |
+        """
+        let out = render(
+            md,
+            options: RenderOptions(wrap: true, width: 8, color: true, tablePadding: 0, tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("red") }).map(String.init)
+
+        #expect(body?.contains(open) == true)
+        #expect(body?.contains("\u{001B}[0m") == true)
+        let openAt = body?.range(of: open)
+        let closeAt = body?.range(of: "\u{001B}[0m")
+        if let openAt, let closeAt {
+            #expect(openAt.lowerBound < closeAt.lowerBound)
+        }
+    }
+
+    @Test
     func `table truncation balances inline ANSI styling`() {
         let md = """
         | Cell |
