@@ -91,6 +91,31 @@ struct ANSIRenderingSafetyTests {
 
 struct RenderingTests {
     @Test
+    func `nested strong keeps the surrounding italic`() {
+        let out = render("*hello **world** there*", options: RenderOptions(wrap: false, color: true))
+        let italic = "\u{001B}[3m"
+        let reset = "\u{001B}[0m"
+        #expect(out.contains(reset + italic + " there"))
+        #expect(stripANSI(out).contains("hello world there"))
+    }
+
+    @Test
+    func `code box header stays dim after the language label`() {
+        let md = """
+        ```swift
+        let a = 1
+        let b = 2
+        ```
+        """
+        let out = render(md, options: RenderOptions(wrap: false, color: true, codeBox: true))
+        let dim = "\u{001B}[2m"
+        let reset = "\u{001B}[0m"
+        let top = out.split(separator: "\n").first.map(String.init) ?? ""
+        #expect(top.contains("[swift]"))
+        #expect(top.contains(reset + dim))
+    }
+
+    @Test
     func `inline formatting`() {
         let out = strip("Hello _em_ **strong** `code` ~~gone~~", options: RenderOptions(width: 80))
         #expect(out.contains("em"))
