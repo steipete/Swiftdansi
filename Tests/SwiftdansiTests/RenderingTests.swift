@@ -91,6 +91,31 @@ struct ANSIRenderingSafetyTests {
 
 struct RenderingTests {
     @Test
+    func `nested strong keeps the surrounding italic`() {
+        let out = render("*hello **world** there*", options: RenderOptions(wrap: false, color: true))
+        let italic = "\u{001B}[3m"
+        let reset = "\u{001B}[0m"
+        #expect(out.contains(reset + italic + " there"))
+        #expect(stripANSI(out).contains("hello world there"))
+    }
+
+    @Test
+    func `code box header stays dim after the language label`() {
+        let md = """
+        ```swift
+        let a = 1
+        let b = 2
+        ```
+        """
+        let out = render(md, options: RenderOptions(wrap: false, color: true, codeBox: true))
+        let dim = "\u{001B}[2m"
+        let reset = "\u{001B}[0m"
+        let top = out.split(separator: "\n").first.map(String.init) ?? ""
+        #expect(top.contains("[swift]"))
+        #expect(top.contains(reset + dim))
+    }
+
+    @Test
     func `inline formatting`() {
         let out = strip("Hello _em_ **strong** `code` ~~gone~~", options: RenderOptions(width: 80))
         #expect(out.contains("em"))
@@ -306,6 +331,28 @@ struct RenderingTests {
         let out = strip(md, options: RenderOptions(wrap: true, width: 10, tableTruncate: false))
         #expect(out.contains("Supercalifragilistic"))
         #expect(!out.contains("…"))
+    }
+
+    @Test
+    func `table truncation closes truecolor whose last channel is zero`() {
+        let open = "\u{001B}[38;2;255;0;0m"
+        let md = """
+        | C |
+        | --- |
+        | \(open)redredredred |
+        """
+        let out = render(
+            md,
+            options: RenderOptions(wrap: true, width: 8, color: true, tablePadding: 0, tableTruncate: true))
+        let body = out.split(separator: "\n").first(where: { stripANSI(String($0)).contains("red") }).map(String.init)
+
+        #expect(body?.contains(open) == true)
+        #expect(body?.contains("\u{001B}[0m") == true)
+        let openAt = body?.range(of: open)
+        let closeAt = body?.range(of: "\u{001B}[0m")
+        if let openAt, let closeAt {
+            #expect(openAt.lowerBound < closeAt.lowerBound)
+        }
     }
 
     @Test
