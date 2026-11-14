@@ -36,6 +36,7 @@ Goal: Swift 6.2 Markdown → ANSI renderer and CLI, mirroring Markdansi behavior
 - Tables: unicode/ascii/none borders, padding, alignment from GFM markers, optional truncation with ellipsis; width balancing shrinks widest columns until fit.
 - Lists: supports ordered/unordered and task checkboxes; tight rendering by default.
 - Blockquotes: wraps with styled prefix (`│ `).
+- Nested inline spans restore the surrounding style after their reset. Truncated table cells close active colors before the ellipsis, including truecolor channels set to zero.
 - Thematic breaks: 40-character em-dash line, clamped by width when wrapping.
 
 ## Platforms & Toolchain

@@ -38,7 +38,11 @@ public struct Styler {
         if let fg = ansi(for: style.color) { codes.append(fg) }
         if let bg = ansi(for: style.bgColor, background: true) { codes.append(bg) }
         guard !codes.isEmpty else { return text }
+        let open = codes.joined()
         let reset = "\u{001B}[0m"
-        return codes.joined() + text + reset
+        // An inner span ends with a full reset. Re-open this style after each
+        // one so text that follows keeps the outer attributes.
+        let body = text.replacingOccurrences(of: reset, with: reset + open)
+        return open + body + reset
     }
 }

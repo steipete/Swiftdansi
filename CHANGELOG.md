@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## 0.3.2 — Unreleased
 
+### Fixed
+- Preserve surrounding styles after nested spans and close truncated truecolor cells correctly, including colors whose final channel is zero. Thanks @SebTardif.
+
 ### Changed
+- Update swift-markdown and swift-cmark to 0.9.0 and swift-displaywidth to 0.2.0.
 - Move macOS CI and release verification to `xcode-27` while preserving macOS 14 support and the Linux toolchain.
 
 ## 0.3.1 — 2026-09-13
