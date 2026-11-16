@@ -18,7 +18,7 @@ Add Swiftdansi to your Swift package dependencies:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.3.1"),
+    .package(url: "https://github.com/steipete/Swiftdansi.git", from: "0.3.2"),
 ]
 ```
 
