@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## 0.3.2 — Unreleased
+## 0.3.3 — Unreleased
+
+## 0.3.2 — 2026-11-15
+
+**Highlights:** Preserve nested styles and close truncated truecolor cells correctly, with refreshed Markdown and display-width dependencies.
 
 ### Fixed
 - Preserve surrounding styles after nested spans and close truncated truecolor cells correctly, including colors whose final channel is zero. Thanks @SebTardif.
